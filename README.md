@@ -2,7 +2,7 @@
 ## Setup
 - Environment setup
 ```bash
-conda create -n nerflab
+conda create -n nerflab python=3.8 pip
 conda activate nerflab
 
 git clone https://github.com/yzslab/nerflab.git
