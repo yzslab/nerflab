@@ -11,7 +11,8 @@ cd nerflab
 pip install -r requirements.txt
 ```
 - Dataset preparation
-  - Download nerf llff & synthetic from [here](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
+  - [NeRF llff & synthetic](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
+  - [Mip-NeRF 360](http://storage.googleapis.com/gresearch/refraw360/360_v2.zip)
 ## Training
 - Blender
 ```bash
