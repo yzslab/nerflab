@@ -18,3 +18,4 @@ dependencies:
     - opencv=4.5
     - imageio=2.21
     - tqdm
+    - kornia
