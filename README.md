@@ -41,7 +41,7 @@ python eval.py \
   --white-bkgd \
   --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
 ```
--- LLFF
+- LLFF
 ```bash
 python eval.py \
   --dataset-type llff \
