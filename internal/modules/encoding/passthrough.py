@@ -6,5 +6,8 @@ class Passthrough(Encodings):
         super().__init__()
         self.input_n_channel = input_n_channel
 
+    def forward(self, x):
+        return x
+
     def get_output_n_channels(self) -> int:
         return self.input_n_channel
