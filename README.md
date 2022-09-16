@@ -31,6 +31,24 @@ python train.py \
   --exp-name fern \
   --noise-std 1e0
 ```
+## Evaluation (Rendering)
+- Blender
+```bash
+python eval.py \
+  --dataset-type blender \
+  --dataset-path nerf_dataset/nerf_synthetic/lego \
+  --exp-name lego \
+  --white-bkgd \
+  --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
+```
+-- LLFF
+```bash
+python eval.py \
+  --dataset-type llff \
+  --dataset-path nerf_dataset/nerf_llff_data/fern \
+  --exp-name fern \
+  --load-ckpt ./ckpts/fern/YOUR_CKPT_FILENAME.ckpt
+```
 ## Related Documents
 - [bmild/nerf 源码注释](https://www.yuque.com/docs/share/01c0c96c-fdc1-472e-acf4-a83aa59f5c6f)
 - [实现细节](https://www.yuque.com/docs/share/6d2e30ca-963f-439c-b5b5-776954e6507f)
