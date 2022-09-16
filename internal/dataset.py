@@ -13,7 +13,7 @@ def get_rays_np(H, W, focal, c2w):
     return rays_o, rays_d
 
 
-def image_pixel_to_rays(images, hwf, poses):
+def image_pixel_to_rays(images, hwf, poses, index_by_image=False):
     # Cast intrinsics to right types
     H, W, focal = hwf
     H, W = int(H), int(W)
@@ -37,8 +37,13 @@ def image_pixel_to_rays(images, hwf, poses):
     # [N, H, W, ro+rd+rgb, 3]
     rays_rgb = np.transpose(rays_rgb, [0, 2, 3, 1, 4])
 
-    # [(N-1)*H*W, ro+rd+rgb, 3]
-    rays_rgb = np.reshape(rays_rgb, [-1, 3, 3])  # rays_rgb[ray][0: o, 1: d, 2: RGB] = 1x3 vector
+    if index_by_image is False:
+        # [(N-1)*H*W, ro+rd+rgb, 3]
+        rays_rgb = np.reshape(rays_rgb, [-1, 3, 3])  # rays_rgb[ray][0: o, 1: d, 2: RGB] = 1x3 vector
+    else:
+        # rays_rgb[image][ray][0: o, 1: d, 2: RGB] = 1x3 vector
+        rays_rgb = np.reshape(rays_rgb, [rays_rgb.shape[0], -1, 3, 3])
+
     rays_rgb = rays_rgb.astype(np.float32)
 
     return rays_rgb
@@ -46,22 +51,24 @@ def image_pixel_to_rays(images, hwf, poses):
 
 def extract_rays_data(rays):
     # rays_o, rays_d, near, far, view_direction =
-    # return rays[:, 0:3], rays[:, 3:6], rays[:, 9], rays[:, 10], rays[:, 11:14]
-    return rays[:, 0:3], rays[:, 3:6], rays[:, 6:7], rays[:, 7:8], rays[:, 3:6]
-
+    return rays[:, 0:3], rays[:, 3:6], rays[:, 9], rays[:, 10], rays[:, 11:14]
+    # return rays[:, 0:3], rays[:, 3:6], rays[:, 6:7], rays[:, 7:8], rays[:, 3:6]
 
 
 def extract_rays_rgb(rays):
-    # return rays[:, 6:9]
-    return rays['rgbs']
+    return rays[:, 6:9]
+    # return rays['rgbs']
 
 
 def concat_rays_data(rays, near, far):
-    rays_o, rays_d, rays_rgb = rays[:, 0], rays[:, 1], rays[:, 2]
-    near = near * torch.ones_like(rays_d[:, :1])
-    far = far * torch.ones_like(rays_d[:, :1])
+    # rays_o, rays_d, rays_rgb = rays[:, 0], rays[:, 1], rays[:, 2]
+    rays_o, rays_d, rays_rgb = rays[..., 0, :], rays[..., 1, :], rays[..., 2, :]
+    # near = near * torch.ones_like(rays_d[:, :1])
+    near = near * torch.ones_like(rays_d[..., :1])
+    # far = far * torch.ones_like(rays_d[:, :1])
+    far = far * torch.ones_like(rays_d[..., :1])
     view_direction = rays_d / torch.norm(rays_d, dim=-1, keepdim=True)
-    view_direction = torch.reshape(view_direction, [-1, 3]).float()
+    # view_direction = torch.reshape(view_direction, [-1, 3]).float()
 
     # rays[ray][0-2: o, 3-5: d, 6-8: rgb, 9: near, 10: far, 11-13: norm_d]
     return torch.concat([rays_o, rays_d, rays_rgb, near, far, view_direction], -1)
@@ -71,7 +78,14 @@ class NeRFDataset(Dataset):
     def __init__(self, images, hwf, poses, near, far, split):
         super().__init__()
 
-        rays = torch.tensor(image_pixel_to_rays(np.asarray(images), hwf, np.asarray(poses)))
+        images = np.asarray(images)
+        self.image_shape = images.shape[1:3]
+
+        index_by_image = True
+        if split == "train":
+            index_by_image = False
+        rays = torch.tensor(
+            image_pixel_to_rays(images, hwf, np.asarray(poses), index_by_image=index_by_image))
         self.rays = concat_rays_data(rays, near, far)
 
         # rays = torch.tensor(image_pixel_to_rays(np.asarray(images), hwf, np.asarray(poses)))
@@ -96,7 +110,12 @@ class NeRFDataset(Dataset):
         return len(self.rays)
 
     def __getitem__(self, idx):
-        return self.rays[idx]
+        if self.split == "train":
+            return self.rays[idx]
+        return {
+            "rays": self.rays[idx],
+            "shape": self.image_shape,
+        }
         # return [
         #     self.rays[0][idx],
         #     self.rays[1][idx],

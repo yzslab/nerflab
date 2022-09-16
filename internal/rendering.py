@@ -1,6 +1,9 @@
 import torch
 import numpy as np
 import torch.nn.functional as F
+import torchvision.transforms as T
+import cv2
+from PIL import Image
 
 
 def generate_coarse_sample_points(rays_o, rays_d, near, far, n_samples, perturb=1.):
@@ -52,6 +55,7 @@ def generate_fine_sample_points(rays_o, rays_d, coarse_z_vals, coarse_weights, n
     pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]  # [N_rays, N_samples + N_importance, 3]
 
     return pts, z_vals
+
 
 def nerfpl_raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
     dir_ = rays_d
@@ -180,3 +184,18 @@ def sample_pdf(bins, weights, N_samples, det=False, pytest=False):
     samples = bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])
 
     return samples
+
+
+def visualize_depth(depth, cmap=cv2.COLORMAP_JET):
+    """
+    depth: (H, W)
+    """
+    x = depth.cpu().numpy()
+    x = np.nan_to_num(x)  # change nan to 0
+    mi = np.min(x)  # get minimum depth
+    ma = np.max(x)
+    x = (x - mi) / (ma - mi + 1e-8)  # normalize to 0~1
+    x = (255 * x).astype(np.uint8)
+    x_ = Image.fromarray(cv2.applyColorMap(x, cmap))
+    x_ = T.ToTensor()(x_)  # (3, H, W)
+    return x_
