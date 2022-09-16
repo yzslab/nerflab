@@ -23,6 +23,8 @@ def get_parameters():
 
     parser.add_argument("--lrate-decay", type=int, default=250)
 
+    parser.add_argument("--perturb", type=float, default=1.,
+                        help='set to 0. for no jitter, 1. for jitter')
     parser.add_argument("--noise-std", type=float, default=0.,
                         help='std dev of noise added to regularize sigma_a output, 1e0 recommended')
 

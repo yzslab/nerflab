@@ -26,7 +26,7 @@ hparams = {
     "pe_location_n_freq": 10,
     "pe_direction_n_freq": 4,
 
-    "perturb": 1.0,
+    "perturb": parameters.perturb,
     "noise_std": parameters.noise_std,
 
     "lrate": 5e-4,
