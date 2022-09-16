@@ -28,5 +28,7 @@ def get_llff_dataset(path, down_sample_factor, holdout, no_ndc=True, spherify=Tr
         far = 1.
     print('NEAR FAR', near, far)
 
+    print("TEST/VAL views are", i_test)
+
     return split_and_create_nerf_dataset(images=images, poses=poses, hwf=hwf, near=near, far=far, i_train=None,
                                          i_test=i_test, i_val=i_test)

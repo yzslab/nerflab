@@ -15,6 +15,7 @@ def get_blender_dataset(path, white_bkgd=True, half_resolution=False, test_skip=
     far = 6.
 
     if white_bkgd:
+        print('Blender white background enabled')
         images = images[..., :3] * images[..., -1:] + (1. - images[..., -1:])
     else:
         images = images[..., :3]

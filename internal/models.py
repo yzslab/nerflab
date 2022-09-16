@@ -1,6 +1,6 @@
 import os
 import torch
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import pytorch_lightning as pl
 from internal.modules.nerf.nerf import NeRF as NeRFNetwork
 import internal.rendering as rendering
@@ -112,10 +112,22 @@ class NeRF(pl.LightningModule):
         self.optimizer = torch.optim.Adam(parameters, lr=lr, eps=eps)
 
         # reduce learning rate
-        milestones = self.hparams["decay_step"]  # or 2, 4, 8 for blender
-        gamma = self.hparams["decay_gamma"]
-        scheduler = MultiStepLR(self.optimizer, milestones=milestones, gamma=gamma)
-        return [self.optimizer], [scheduler]
+        # milestones = self.hparams["decay_step"]  # or 2, 4, 8 for blender
+        # gamma = self.hparams["decay_gamma"]
+        # scheduler = MultiStepLR(self.optimizer, milestones=milestones, gamma=gamma)
+
+        decay_rate = 0.1
+        lrate_decay = self.hparams["lrate_decay"]
+        decay_steps = lrate_decay * 1000
+
+        def scheduler_func(step):
+            return decay_rate ** (step / decay_steps)
+
+        scheduler = LambdaLR(self.optimizer, scheduler_func)
+        return [self.optimizer], [{
+            "scheduler": scheduler,
+            "interval": "step",
+        }]
 
     def coarse2fine_sample(
             self,
