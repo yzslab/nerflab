@@ -6,7 +6,13 @@ import internal.options
 parameters = internal.options.get_parameters()
 train_dataset, test_dataset, val_dataset, extra_hparams = internal.options.get_dataset_by_parameters(parameters)
 
-model = NeRFModel.load_from_checkpoint(parameters.load_ckpt, log_dir=parameters.log_dir, exp_name=parameters.exp_name)
+model = NeRFModel.load_from_checkpoint(
+    parameters.load_ckpt,
+    log_dir=parameters.log_dir,
+    exp_name=parameters.exp_name,
+    perturb=0.,
+    noise_std=0.
+)
 trainer = pl.Trainer(
     accelerator=parameters.accelerator,
     devices=parameters.n_device,
