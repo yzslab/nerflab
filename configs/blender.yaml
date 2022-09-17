@@ -1,0 +1,5 @@
+include: base.yaml
+dataset_type: blender
+white_bkgd: true
+blender_half_resolution: false
+lrate_decay: 500

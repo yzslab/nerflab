@@ -1,0 +1,2 @@
+optimizer: adam
+lrate: 5e-4

@@ -163,13 +163,13 @@ class NeRF(pl.LightningModule):
         coarse_pts, coarse_z_vals = rendering.generate_coarse_sample_points(rays_o, rays_d, near, far, n_coarse_samples,
                                                                             perturb)
         coarse_network_output = self.run_network(self.coarse_network, coarse_pts, view_directions,
-                                                 self.hparams["chunk"])
+                                                 self.hparams["chunk_size"])
         coarse_rgb_map, coarse_disp_map, coarse_acc_map, coarse_weights, coarse_depth_map = rendering.raw2outputs(
             raw=coarse_network_output,
             z_vals=coarse_z_vals,
             rays_d=rays_d,
             raw_noise_std=self.hparams["noise_std"],
-            white_bkgd=self.hparams["white_background"]
+            white_bkgd=self.hparams["white_bkgd"]
         )
 
         results = {
@@ -183,13 +183,13 @@ class NeRF(pl.LightningModule):
                                                                           n_fine_samples=n_fine_samples,
                                                                           coarse_weights=coarse_weights,
                                                                           perturb=perturb)
-            fine_network_output = self.run_network(self.fine_network, fine_pts, view_directions, self.hparams["chunk"])
+            fine_network_output = self.run_network(self.fine_network, fine_pts, view_directions, self.hparams["chunk_size"])
             fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map = rendering.raw2outputs(
                 raw=fine_network_output,
                 z_vals=fine_z_vals,
                 rays_d=rays_d,
                 raw_noise_std=self.hparams["noise_std"],
-                white_bkgd=self.hparams["white_background"]
+                white_bkgd=self.hparams["white_bkgd"]
             )
 
             results['fine'] = generate_sample_output(fine_network_output, fine_rgb_map, fine_disp_map, fine_acc_map,
@@ -222,8 +222,8 @@ class NeRF(pl.LightningModule):
         shape = batch["shape"]
 
         rendered_rays = {}
-        for i in range(0, rays.shape[0], self.hparams["batch"]):
-            rendered_batch_rays = self(rays[i:i + self.hparams["batch"]])['fine']
+        for i in range(0, rays.shape[0], self.hparams["batch_size"]):
+            rendered_batch_rays = self(rays[i:i + self.hparams["batch_size"]])['fine']
             for key in rendered_batch_rays:
                 if key not in rendered_rays:
                     rendered_rays[key] = []

@@ -1,0 +1,19 @@
+batch_size: 1024
+chunk_size: 32768
+
+n_coarse_samples: 64
+n_fine_samples: 128
+
+accelerator: "gpu"
+n_device: 1
+
+perturb: 1.
+noise_std: 0.
+
+white_bkgd: false
+
+include:
+  - "network/paper.yaml"
+  - "encoding/positional_encoding.yaml"
+  - "optimizer/adam.yaml"
+  - "scheduler/exponential.yaml"

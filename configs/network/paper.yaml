@@ -1,0 +1,8 @@
+# network
+skips: [4]
+## density
+density_layers: 8
+density_layer_units: 256
+## color
+color_layers: 1
+color_layer_units: 128

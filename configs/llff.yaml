@@ -1,0 +1,5 @@
+include: base.yaml
+dataset_type: llff
+llff_down_sample_factor: 4
+llff_hold: 8
+noise_std: 1e0

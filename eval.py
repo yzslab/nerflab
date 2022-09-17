@@ -3,8 +3,8 @@ import pytorch_lightning as pl
 from internal.models import NeRF as NeRFModel
 import internal.arguments
 
-arguments = internal.arguments.get_arguments()
-train_dataset, test_dataset, val_dataset, extra_hparams = internal.arguments.get_dataset_by_arguments(arguments)
+arguments, hparams = internal.arguments.get_arguments()
+train_dataset, test_dataset, val_dataset = internal.arguments.get_dataset_by_hparams(hparams)
 
 model = NeRFModel.load_from_checkpoint(
     arguments.load_ckpt,

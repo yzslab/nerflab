@@ -1,0 +1,2 @@
+lr_scheduler: exponential
+lrate_decay: 250

@@ -14,37 +14,47 @@ pip install -r requirements.txt
   - [NeRF llff & synthetic](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
   - [Mip-NeRF 360](http://storage.googleapis.com/gresearch/refraw360/360_v2.zip)
 ## Training
+### Examples
 - Blender
 ```bash
 python train.py \
-  --dataset-type blender \
+  --config configs/blender.yaml \
   --dataset-path nerf_dataset/nerf_synthetic/lego \
-  --lrate-decay 500 \
-  --exp-name lego \
-  --white-bkgd
+  --exp-name lego
 ```
 - LLFF
 ```bash
 python train.py \
-  --dataset-type llff \
+  --config configs/llff.yaml \
   --dataset-path nerf_dataset/nerf_llff_data/fern \
   --exp-name fern \
-  --noise-std 1e0
 ```
+### Set hyperparameters via command line
+- Use `--config-values`:
+```bash
+python train.py \
+  --config configs/llff.yaml \
+  --config-values \
+    'llff_down_sample_factor: 8' \
+    'batch_size: 4096' \
+    'chunk_size: 65536' \
+  --dataset-path nerf_dataset/nerf_llff_data/fern \
+  --exp-name fern
+```
+
 ## Evaluation (Rendering)
 - Blender
 ```bash
 python eval.py \
-  --dataset-type blender \
+  --config configs/blender.yaml
   --dataset-path nerf_dataset/nerf_synthetic/lego \
   --exp-name lego \
-  --white-bkgd \
   --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
 ```
 - LLFF
 ```bash
 python eval.py \
-  --dataset-type llff \
+  --config configs/llff.yaml
   --dataset-path nerf_dataset/nerf_llff_data/fern \
   --exp-name fern \
   --load-ckpt ./ckpts/fern/YOUR_CKPT_FILENAME.ckpt

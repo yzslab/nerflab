@@ -10,3 +10,4 @@ einops==0.4.*
 matplotlib==3.5.*
 opencv-python==4.6.*
 tqdm
+pyyaml
