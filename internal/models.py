@@ -1,4 +1,6 @@
 import os
+from typing import List, Any
+
 import torch
 from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import pytorch_lightning as pl
@@ -83,7 +85,6 @@ class NeRF(pl.LightningModule):
         return self.render_single_image(batch)
 
     def on_predict_epoch_start(self):
-        super().on_predict_epoch_start()
         self.val_save_dir = os.path.join(
             self.hparams["log_dir"],
             self.hparams["exp_name"],
@@ -94,12 +95,30 @@ class NeRF(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         predicted = self.render_single_image(batch)
         print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}")
-        imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}.png'.format(batch_idx)),
+        imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}_rgb.png'.format(batch_idx)),
                         to8b(predicted['val/img'].numpy()))
         return {
+            "id": batch_idx,
             "val/loss": predicted["val/loss"],
-            "val/psnr": predicted["val/psnr"],
+            "val/psnr": predicted["val/psnr"][0],
         }
+
+    def on_predict_epoch_end(self, results):
+        loss_values = []
+        psnr_values = []
+        with open(os.path.join(self.val_save_dir, "metrics.txt"), mode="w") as f:
+            for i in results:
+                for image in i:
+                    loss_values.append(image["val/loss"])
+                    psnr_values.append(image["val/psnr"])
+                    f.write(f"#{image['id']} loss: {image['val/loss']}, psnr: {image['val/psnr']}\n")
+            mean_loss = torch.tensor(loss_values).mean()
+            mean_psnr = torch.tensor(psnr_values).mean()
+
+            mean_text = f"mean: loss: {mean_loss}, psnr: {mean_psnr}"
+            f.write(mean_text)
+            f.write("\n")
+            print(mean_text)
 
     def configure_optimizers(self):
         lr = self.hparams["lrate"]

@@ -16,7 +16,7 @@ model = NeRFModel.load_from_checkpoint(
 trainer = pl.Trainer(
     accelerator=arguments.accelerator,
     devices=arguments.n_device,
-    logger=internal.arguments.get_logger_by_arguments(arguments)
+    logger=internal.arguments.get_logger_by_arguments(arguments),
 )
 trainer.predict(model, DataLoader(test_dataset, batch_size=1, shuffle=False),
                 ckpt_path=arguments.load_ckpt)
