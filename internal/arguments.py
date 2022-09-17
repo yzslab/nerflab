@@ -1,9 +1,10 @@
 import argparse
 import internal.datasets.llff
 import internal.datasets.blender
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
-def get_parameters():
+def get_arguments():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--dataset-type", type=str,
@@ -39,26 +40,30 @@ def get_parameters():
     return parser.parse_args()
 
 
-def get_dataset_by_parameters(parameters):
+def get_dataset_by_arguments(arguments):
     extra_hparams = {}
-    if parameters.dataset_type == "llff":
-        print(f"llff: down_sample_factor={parameters.llff_down_sample_factor}, hold={parameters.llff_hold}")
+    if arguments.dataset_type == "llff":
+        print(f"llff: down_sample_factor={arguments.llff_down_sample_factor}, hold={arguments.llff_hold}")
         train_dataset, test_dataset, val_dataset = internal.datasets.llff.get_llff_dataset(
-            parameters.dataset_path, parameters.llff_down_sample_factor, parameters.llff_hold)
+            arguments.dataset_path, arguments.llff_down_sample_factor, arguments.llff_hold)
         # train_dataset = nerfpl_llff.LLFFDataset(parameters.dataset_path, spheric_poses=True)
         # extra_hparams["white_background"] = False
         # extra_hparams["noise_std"] = 1e0  # important for training real world dataset
         # extra_hparams["decay_step"] = [10, 20]
-    elif parameters.dataset_type == "blender":
+    elif arguments.dataset_type == "blender":
         # train_dataset = nerfpl_blender.BlenderDataset(parameters.dataset_path, img_wh=(400, 400))
-        print(f"blender: white_backgound={parameters.white_bkgd}, half_resolution={parameters.blender_half_resolution}")
+        print(f"blender: white_backgound={arguments.white_bkgd}, half_resolution={arguments.blender_half_resolution}")
         train_dataset, test_dataset, val_dataset = internal.datasets.blender.get_blender_dataset(
-            parameters.dataset_path, white_bkgd=parameters.white_bkgd,
-            half_resolution=parameters.blender_half_resolution)
+            arguments.dataset_path, white_bkgd=arguments.white_bkgd,
+            half_resolution=arguments.blender_half_resolution)
         # extra_hparams["white_background"] = True
         # extra_hparams["noise_std"] = 0.
         # extra_hparams["decay_step"] = [2, 4, 8]
     else:
-        raise ValueError(f"unsupported dataset type: {parameters.dataset_type}")
+        raise ValueError(f"unsupported dataset type: {arguments.dataset_type}")
 
     return train_dataset, test_dataset, val_dataset, extra_hparams
+
+
+def get_logger_by_arguments(arguments):
+    return TensorBoardLogger(save_dir=arguments.log_dir, name=arguments.exp_name, default_hp_metric=False)
