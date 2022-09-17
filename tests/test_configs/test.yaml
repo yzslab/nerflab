@@ -1,0 +1,3 @@
+include: base.yaml
+test_value1: "value from test.yaml"
+include3_value3: "overridden by test.yaml"

@@ -1,0 +1,6 @@
+base_value1: "base.yaml loaded"
+include:
+  - "includes/include1.yaml"
+  - "includes/include2.yaml"
+include3_value2: "overridden by base.yaml"
+include3_value3: "overridden by base.yaml"

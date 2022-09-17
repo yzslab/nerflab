@@ -1,0 +1,2 @@
+include1_value1: "included by base.yaml"
+include1_value2: "should be overridden by include2.yaml"
