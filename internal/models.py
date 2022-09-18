@@ -1,5 +1,4 @@
 import os
-from typing import List, Any
 
 import torch
 from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
@@ -82,7 +81,26 @@ class NeRF(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self.render_single_image(batch)
+        rendered = self.render_single_image(batch)
+
+        # only log the first result to logger
+        if batch_idx == 0:
+            img = rendered["val/img"].permute(2, 0, 1)
+            gt = rendered["val/gt"].permute(2, 0, 1)
+            stack = torch.stack([gt, img, rendered["val/depth_chw"]])
+            self.logger.experiment.add_images("val/gt_pred_depth", stack, self.global_step)
+
+        return {
+            "val/loss": rendered["val/loss"],
+            "val/psnr": rendered["val/psnr"],
+        }
+
+    def validation_epoch_end(self, outputs):
+        mean_loss = torch.stack([x["val/loss"] for x in outputs]).mean()
+        mean_acc = torch.stack([x["val/psnr"] for x in outputs]).mean()
+
+        self.log("val/loss", mean_loss, prog_bar=True)
+        self.log("val/psnr", mean_acc, prog_bar=True)
 
     def on_predict_epoch_start(self):
         self.val_save_dir = os.path.join(
@@ -101,6 +119,7 @@ class NeRF(pl.LightningModule):
             "id": batch_idx,
             "val/loss": predicted["val/loss"],
             "val/psnr": predicted["val/psnr"][0],
+            "val/img": predicted["val/img"],
         }
 
     def on_predict_epoch_end(self, results):
@@ -183,7 +202,8 @@ class NeRF(pl.LightningModule):
                                                                           n_fine_samples=n_fine_samples,
                                                                           coarse_weights=coarse_weights,
                                                                           perturb=perturb)
-            fine_network_output = self.run_network(self.fine_network, fine_pts, view_directions, self.hparams["chunk_size"])
+            fine_network_output = self.run_network(self.fine_network, fine_pts, view_directions,
+                                                   self.hparams["chunk_size"])
             fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map = rendering.raw2outputs(
                 raw=fine_network_output,
                 z_vals=fine_z_vals,
@@ -231,19 +251,22 @@ class NeRF(pl.LightningModule):
 
         rendered_rays = {k: torch.concat(rendered_rays[k], 0) for k in rendered_rays}
 
-        mse = img2mse(rendered_rays["rgb_map"], extract_rays_rgb(rays))
+        gt = extract_rays_rgb(rays)
+        mse = img2mse(rendered_rays["rgb_map"], gt)
         psnr = mse2psnr(mse)
 
         # save image
         H, W = shape[0], shape[1]
         img = rendered_rays["rgb_map"].view(H, W, 3).cpu()
-        # depth = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W, 3))  # (3, H, W)
+        gt_img = gt.view(H, W, 3).cpu()
+        depth_chw = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W))
 
         return {
             "val/loss": mse,
             "val/psnr": psnr,
             "val/img": img,
-            # "val/depth": depth,
+            "val/depth_chw": depth_chw,
+            "val/gt": gt_img,
         }
 
 
