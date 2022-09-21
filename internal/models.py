@@ -1,9 +1,9 @@
 import os
 
 import torch
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import pytorch_lightning as pl
 from internal.modules.nerf.nerf import NeRF as NeRFNetwork
+import internal.optimizer
 import internal.rendering as rendering
 from internal.dataset import extract_rays_data, extract_rays_rgb
 
@@ -140,32 +140,36 @@ class NeRF(pl.LightningModule):
             print(mean_text)
 
     def configure_optimizers(self):
-        lr = self.hparams["lrate"]
-        eps = 1e-8
+        self.optimizer = internal.optimizer.get_optimizer([self.coarse_network, self.fine_network], self.hparams)
+        scheduler = internal.optimizer.get_scheduler(self.optimizer, self.hparams)
 
-        parameters = list(self.coarse_network.parameters())
-        if self.hparams["n_fine_samples"] > 0:
-            parameters += list(self.fine_network.parameters())
-
-        self.optimizer = torch.optim.Adam(parameters, lr=lr, eps=eps)
-
-        # reduce learning rate
-        # milestones = self.hparams["decay_step"]  # or 2, 4, 8 for blender
-        # gamma = self.hparams["decay_gamma"]
-        # scheduler = MultiStepLR(self.optimizer, milestones=milestones, gamma=gamma)
-
-        decay_rate = 0.1
-        lrate_decay = self.hparams["lrate_decay"]
-        decay_steps = lrate_decay * 1000
-
-        def scheduler_func(step):
-            return decay_rate ** (step / decay_steps)
-
-        scheduler = LambdaLR(self.optimizer, scheduler_func)
-        return [self.optimizer], [{
-            "scheduler": scheduler,
-            "interval": "step",
-        }]
+        return [self.optimizer], [scheduler]
+        # lr = self.hparams["lrate"]
+        # eps = 1e-8
+        #
+        # parameters = list(self.coarse_network.parameters())
+        # if self.hparams["n_fine_samples"] > 0:
+        #     parameters += list(self.fine_network.parameters())
+        #
+        # self.optimizer = torch.optim.Adam(parameters, lr=lr, eps=eps)
+        #
+        # # reduce learning rate
+        # # milestones = self.hparams["decay_step"]  # or 2, 4, 8 for blender
+        # # gamma = self.hparams["decay_gamma"]
+        # # scheduler = MultiStepLR(self.optimizer, milestones=milestones, gamma=gamma)
+        #
+        # decay_rate = 0.1
+        # lrate_decay = self.hparams["lrate_decay"]
+        # decay_steps = lrate_decay * 1000
+        #
+        # def scheduler_func(step):
+        #     return decay_rate ** (step / decay_steps)
+        #
+        # scheduler = LambdaLR(self.optimizer, scheduler_func)
+        # return [self.optimizer], [{
+        #     "scheduler": scheduler,
+        #     "interval": "step",
+        # }]
 
     def coarse2fine_sample(
             self,
