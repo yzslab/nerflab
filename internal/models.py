@@ -70,10 +70,10 @@ class NeRF(pl.LightningModule):
         if self.hparams["n_fine_samples"] > 0:
             loss += fine_loss
 
-        self.log("coarse/loss", coarse_loss, prog_bar=True)
-        self.log("coarse/psnr", coarse_psnr, prog_bar=True)
+        self.log("coarse/loss", coarse_loss, prog_bar=False)
+        self.log("coarse/psnr", coarse_psnr, prog_bar=False)
         if self.hparams["n_fine_samples"] > 0:
-            self.log("fine/loss", fine_loss, prog_bar=True)
+            self.log("fine/loss", fine_loss, prog_bar=False)
             self.log("fine/psnr", fine_psnr, prog_bar=True)
         self.log("train/loss", loss)
 

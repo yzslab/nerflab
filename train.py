@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from internal.models import NeRF as NeRFModel
+from pytorch_lightning.strategies.ddp import DDPStrategy
 import internal.arguments
 
 arguments, hparams = internal.arguments.get_arguments()
@@ -74,6 +75,7 @@ trainer = pl.Trainer(
     logger=logger,
     accelerator=arguments.accelerator,
     devices=arguments.n_device,
+    strategy=DDPStrategy(find_unused_parameters=False) if arguments.n_device > 1 else None,
     num_sanity_val_steps=1,
     limit_val_batches=3,
 )
