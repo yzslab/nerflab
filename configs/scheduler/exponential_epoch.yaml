@@ -1,0 +1,3 @@
+lr_scheduler: exponential
+scheduler_exponent: 0.9
+scheduler_interval: epoch

@@ -1,0 +1,3 @@
+lr_scheduler: steplr
+decay_step: [2, 4, 8]
+decay_gamma: 0.5

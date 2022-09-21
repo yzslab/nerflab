@@ -9,13 +9,14 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 def get_arguments(args: list = None):
     arguments = get_command_arguments(args)
-    hparams = load_config(arguments.config)
+    hparams = load_config_file_list(arguments.config)
 
     # retrieve --config-values
     hparams_from_arguments = parse_config_values_argument(arguments.config_values)
 
     hparams.update(hparams_from_arguments)
 
+    hparams["n_epoch"] = arguments.n_epoch
     if arguments.dataset_type is not None:
         hparams["dataset_type"] = arguments.dataset_type
     if arguments.dataset_path is not None:
@@ -32,7 +33,7 @@ def get_arguments(args: list = None):
 def get_command_arguments(args=None):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--config", required=True,
+    parser.add_argument("--config", "--configs", "-f", nargs="+",
                         type=str, help="yaml format config file path")
 
     parser.add_argument("--config-values", nargs="*",
@@ -101,6 +102,17 @@ def include_configs_if_available(config: dict, base_dir: str = "configs") -> dic
     if isinstance(config_file_list, str):
         config_file_list = [config_file_list]
 
+    config = load_config_file_list(config_file_list, config, base_dir)
+
+    del config["include"]
+
+    return config
+
+
+def load_config_file_list(config_file_list: list, config=None, base_dir: str = "") -> dict:
+    if config is None:
+        config = {}
+
     # load all config file in the list, the former is overridden by the latter
     sub_config = {}
     for i in config_file_list:
@@ -110,8 +122,6 @@ def include_configs_if_available(config: dict, base_dir: str = "configs") -> dic
     # sub-config is overridden by parent
     sub_config.update(config)
     config = sub_config
-
-    del config["include"]
 
     return config
 

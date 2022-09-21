@@ -1,3 +1,4 @@
 include3_value1: "included by include2.yaml"
 include3_value2: "should be overridden by base.yaml"
 include3_value3: "should be overridden by base.yaml, then test.yaml"
+include3_overridden: "show be overridden by override.yaml if included"

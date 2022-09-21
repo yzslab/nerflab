@@ -1,6 +1,6 @@
 import unittest
 import os
-from internal.arguments import load_config, include_configs_if_available, get_arguments
+from internal.arguments import load_config, include_configs_if_available, load_config_file_list, get_arguments
 
 
 class LoadConfigTestCase(unittest.TestCase):
@@ -9,13 +9,19 @@ class LoadConfigTestCase(unittest.TestCase):
         self.validate_config_values(config)
 
     def test_include_configs_if_available(self):
-        config = include_configs_if_available({}, os.path.join("test", "test_configs"))
+        config = include_configs_if_available({}, os.path.join("tests", "test_configs"))
         self.assertEqual(config, {})
 
         config = include_configs_if_available({
             "include": "test.yaml"
         }, os.path.join("tests", "test_configs"))
         self.validate_config_values(config)
+
+    def test_load_config_file_list(self):
+        config = load_config_file_list(["test.yaml", "override.yaml"], base_dir=os.path.join("tests", "test_configs"))
+        self.validate_config_values(config)
+        self.assertEqual(config["include3_overridden"], "overridden by override.yaml")
+
 
     def test_get_arguments(self):
         arguments, hparams = get_arguments(
