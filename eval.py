@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from internal.models import NeRF as NeRFModel
 import internal.arguments
 
@@ -16,6 +17,7 @@ model = NeRFModel.load_from_checkpoint(
 trainer = pl.Trainer(
     accelerator=arguments.accelerator,
     devices=arguments.n_device,
+    strategy=DDPStrategy(find_unused_parameters=False) if arguments.n_device > 1 else None,
     logger=internal.arguments.get_logger_by_arguments(arguments),
 )
 trainer.predict(model, DataLoader(test_dataset, batch_size=1, shuffle=False),
