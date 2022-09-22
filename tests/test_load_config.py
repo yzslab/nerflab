@@ -1,6 +1,7 @@
 import unittest
 import os
-from internal.arguments import load_config, include_configs_if_available, load_config_file_list, get_arguments
+from internal.arguments import get_arguments
+from internal.config import load_config, include_configs_if_available, load_config_file_list
 
 
 class LoadConfigTestCase(unittest.TestCase):
@@ -26,7 +27,7 @@ class LoadConfigTestCase(unittest.TestCase):
     def test_get_arguments(self):
         arguments, hparams = get_arguments(
             args=["--config", "configs/blender.yaml", "--dataset-type", "blender", "--dataset-path", "./nerf_dataset/nerf_synthetic/lego",
-                  "--n-epoch", "15", "--exp-name", "lego", "--config-values", "batch_size: 2048", "chunk_size: 65536"])
+                  "--n-epoch", "15", "--exp-name", "lego", "--config-values", "batch_size=2048", "chunk_size=65536"])
 
         self.assertEqual(hparams["batch_size"], 2048)
         print(arguments)

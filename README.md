@@ -35,9 +35,9 @@ python train.py \
 python train.py \
   --config configs/llff.yaml \
   --config-values \
-    'llff_down_sample_factor: 8' \
-    'batch_size: 4096' \
-    'chunk_size: 65536' \
+    'llff_down_sample_factor=8' \
+    'batch_size=4096' \
+    'chunk_size=65536' \
   --dataset-path nerf_dataset/nerf_llff_data/fern \
   --exp-name fern
 ```
