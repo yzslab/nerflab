@@ -50,6 +50,7 @@ callbacks = [
     ModelCheckpoint(
         dirpath=f"ckpts/{arguments.exp_name}",
         monitor="step",
+        mode="max",
         every_n_train_steps=1000,
         save_top_k=10,
         filename='{step:06d}',
@@ -57,6 +58,7 @@ callbacks = [
     ModelCheckpoint(
         dirpath=f"ckpts/{arguments.exp_name}",
         monitor="epoch",
+        mode="max",
         save_top_k=10,
         filename='{epoch:02d}-{step:d}',
     )
