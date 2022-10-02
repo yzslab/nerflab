@@ -11,7 +11,7 @@ def get_arguments(args: list = None):
     arguments = get_command_arguments(args)
 
     # find checkpoint file
-    if os.path.exists(arguments.load_ckpt) is False:
+    if arguments.load_ckpt is not None and os.path.exists(arguments.load_ckpt) is False:
         arguments.load_ckpt = os.path.join("ckpts", arguments.exp_name, arguments.load_ckpt)
 
     hparams = load_config_file_list(arguments.config)
