@@ -10,6 +10,21 @@ cd nerflab
 
 pip install -r requirements.txt
 ```
+- Optionally: install tiny-cuda-nn PyTorch extension (Only require if you need tiny-cuda-nn accelerate)
+```bash
+export CUDA_VERSION="11.3"
+export MAKEFLAGS="-j$(nproc)"
+export PATH="/usr/local/cuda-${CUDA_VERSION}/bin:${PATH}"
+export LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_VERSION}/lib64:/usr/lib/wsl/lib/:${LD_LIBRARY_PATH}"
+export LIBRARY_PATH="${LD_LIBRARY_PATH}:${LIBRARY_PATH}"
+
+git submodule sync --recursive
+git submodule update --init --recursive
+
+pushd dependencies/tiny-cuda-nn/bindings/torch
+python setup.py install
+popd
+```
 - Dataset preparation
   - [NeRF llff & synthetic](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
   - [Mip-NeRF 360](http://storage.googleapis.com/gresearch/refraw360/360_v2.zip)
@@ -28,6 +43,15 @@ python train.py \
   --config configs/llff.yaml \
   --dataset-path nerf_dataset/nerf_llff_data/fern \
   --exp-name fern \
+```
+- Multiresolution Hash Encoding implemented by tiny-cuda-nn
+```bash
+python train.py \
+  --config \
+    configs/blender.yaml \
+    configs/tcnn_hash.yaml \
+  --dataset-path nerf_dataset/nerf_synthetic/lego \
+  --exp-name lego-tcnn-hash
 ```
 ### Set hyperparameters via command line
 - Use `--config-values`:

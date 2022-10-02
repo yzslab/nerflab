@@ -1,0 +1,8 @@
+# fully fused mlp with hash encoding
+## density
+density_layers: 2
+density_layer_units: 64
+density_output_features: 15
+## color
+color_layers: 3
+color_layer_units: 64

@@ -1,0 +1,9 @@
+include:
+  - network/tcnn_hash_ff.yaml
+  - encoding/tcnn_hash_grid.yaml
+  - encoding/tcnn_spherical_harmonics.yaml
+
+batch_size: 8192
+chunk_size: 131072
+lrate: 5e-3
+lrate_decay: 50

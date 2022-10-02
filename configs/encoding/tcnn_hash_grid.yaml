@@ -1,0 +1,2 @@
+include: hash_grid.yaml
+location_encoding: tcnn_hash_grid

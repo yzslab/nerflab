@@ -1,0 +1,3 @@
+spherical_harmonics:
+  n_input_channels: 3
+  degree: 4

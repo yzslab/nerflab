@@ -1,3 +1,4 @@
-encoding: "pe"
+location_encoding: "pe"
+viewdir_encoding: "pe"
 pe_location_n_freq: 10
 pe_direction_n_freq: 4

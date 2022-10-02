@@ -1,0 +1,2 @@
+include: spherical_harmonics.yaml
+viewdir_encoding: tcnn_sh

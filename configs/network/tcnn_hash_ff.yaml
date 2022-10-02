@@ -1,0 +1,2 @@
+include: hash_ff.yaml
+network_type: tcnn_ff

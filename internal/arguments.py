@@ -1,3 +1,4 @@
+import os
 import argparse
 
 import internal.datasets.llff
@@ -8,6 +9,11 @@ from internal.config import load_config_file_list, parse_config_values
 
 def get_arguments(args: list = None):
     arguments = get_command_arguments(args)
+
+    # find checkpoint file
+    if os.path.exists(arguments.load_ckpt) is False:
+        arguments.load_ckpt = os.path.join("ckpts", arguments.exp_name, arguments.load_ckpt)
+
     hparams = load_config_file_list(arguments.config)
 
     # retrieve --config-values
@@ -66,6 +72,8 @@ def get_command_arguments(args=None):
     parser.add_argument("--exp-name", type=str, default="nerf")
     parser.add_argument("--log-dir", type=str, default="logs")
 
+    parser.add_argument("--eval-name", type=str, default=None)
+
     parser.add_argument("--load-ckpt", type=str)
 
     return parser.parse_args(args)
@@ -74,20 +82,22 @@ def get_command_arguments(args=None):
 def get_dataset_by_hparams(hparams):
     if hparams["dataset_type"] == "llff":
         print(f"llff: down_sample_factor={hparams['llff_down_sample_factor']}, hold={hparams['llff_hold']}")
-        train_dataset, test_dataset, val_dataset = internal.datasets.llff.get_llff_dataset(
+        train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.llff.get_llff_dataset(
             hparams['dataset_path'], hparams['llff_down_sample_factor'], hparams['llff_hold'])
     elif hparams['dataset_type'] == "blender":
         print(f"blender: white_backgound={hparams['white_bkgd']}, half_resolution={hparams['blender_half_resolution']}")
-        train_dataset, test_dataset, val_dataset = internal.datasets.blender.get_blender_dataset(
+        train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.blender.get_blender_dataset(
             hparams['dataset_path'], white_bkgd=hparams['white_bkgd'],
             half_resolution=hparams['blender_half_resolution'])
     else:
         raise ValueError(f"unsupported dataset type: {hparams['dataset_type']}")
+
+    hparams.update({
+        "bounding_box": bounding_box,
+    })
 
     return train_dataset, test_dataset, val_dataset
 
 
 def get_logger_by_arguments(arguments):
     return TensorBoardLogger(save_dir=arguments.log_dir, name=arguments.exp_name, default_hp_metric=False)
-
-

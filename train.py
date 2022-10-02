@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from internal.models import NeRF as NeRFModel
+from internal.lightning_modules.nerf import NeRF as NeRFModel
 from pytorch_lightning.strategies.ddp import DDPStrategy
 import internal.arguments
 
@@ -49,13 +49,15 @@ callbacks = [
     # LearningRateMonitor(logging_interval="step"),
     ModelCheckpoint(
         dirpath=f"ckpts/{arguments.exp_name}",
-        every_n_train_steps=500,
-        save_top_k=-1,
+        monitor="step",
+        every_n_train_steps=1000,
+        save_top_k=10,
         filename='{step:06d}',
     ),
     ModelCheckpoint(
         dirpath=f"ckpts/{arguments.exp_name}",
-        save_top_k=-1,
+        monitor="epoch",
+        save_top_k=10,
         filename='{epoch:02d}-{step:d}',
     )
 ]

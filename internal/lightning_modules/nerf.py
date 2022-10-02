@@ -2,7 +2,9 @@ import os
 
 import torch
 import pytorch_lightning as pl
-from internal.modules.nerf.nerf import NeRF as NeRFNetwork
+import yaml
+
+from internal.modules.nerf_networks import get_nerf_network
 import internal.optimizer
 import internal.rendering as rendering
 from internal.dataset import extract_rays_data, extract_rays_rgb
@@ -26,22 +28,32 @@ class NeRF(pl.LightningModule):
         self.location_encoder, self.view_direction_encoder = get_encoding(hparams)
 
         # network parameters
-        network_parameters = {
-            "density_layers": hparams["density_layers"],
-            "density_layer_units": hparams["density_layer_units"],
-            "color_layers": hparams["color_layers"],
-            "color_layer_units": hparams["color_layer_units"],
-            "skips": hparams["skips"],
-            "location_input_channels": self.location_encoder.get_output_n_channels(),
-            "view_direction_input_channels": self.view_direction_encoder.get_output_n_channels(),
-        }
+        # network_parameters = {
+        #     "density_layers": hparams["density_layers"],
+        #     "density_layer_units": hparams["density_layer_units"],
+        #     "color_layers": hparams["color_layers"],
+        #     "color_layer_units": hparams["color_layer_units"],
+        #     "skips": hparams["skips"],
+        #     "location_input_channels": self.location_encoder.get_output_n_channels(),
+        #     "view_direction_input_channels": self.view_direction_encoder.get_output_n_channels(),
+        # }
 
         # coarse, N_sample
-        self.coarse_network = NeRFNetwork(**network_parameters)
+        # self.coarse_network = NeRFNetwork(**network_parameters)
+        self.coarse_network = get_nerf_network(
+            location_input_channels=self.location_encoder.get_output_n_channels(),
+            view_direction_input_channels=self.view_direction_encoder.get_output_n_channels(),
+            hparams=hparams,
+        )
 
         # fine, N_importance
         if self.hparams["n_fine_samples"] > 0:
-            self.fine_network = NeRFNetwork(**network_parameters)
+            # self.fine_network = NeRFNetwork(**network_parameters)
+            self.fine_network = get_nerf_network(
+                location_input_channels=self.location_encoder.get_output_n_channels(),
+                view_direction_input_channels=self.view_direction_encoder.get_output_n_channels(),
+                hparams=hparams,
+            )
 
         # loss calculator
         self.loss_calculator = MSELoss()
@@ -107,8 +119,12 @@ class NeRF(pl.LightningModule):
             self.hparams["log_dir"],
             self.hparams["exp_name"],
             "val_images",
-            f"step_{self.global_step}")
+            self.hparams["eval_name"])
         os.makedirs(self.val_save_dir, exist_ok=True)
+
+        # dump hyperparameter to yaml file
+        with open(os.path.join(self.val_save_dir, "hparams.yaml"), "w") as f:
+            yaml.dump(dict(self.hparams), f)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         predicted = self.render_single_image(batch)
@@ -140,7 +156,7 @@ class NeRF(pl.LightningModule):
             print(mean_text)
 
     def configure_optimizers(self):
-        self.optimizer = internal.optimizer.get_optimizer([self.coarse_network, self.fine_network], self.hparams)
+        self.optimizer = internal.optimizer.get_optimizer([self.location_encoder, self.view_direction_encoder, self.coarse_network, self.fine_network], self.hparams)
         scheduler = internal.optimizer.get_scheduler(self.optimizer, self.hparams)
 
         return [self.optimizer], [scheduler]
