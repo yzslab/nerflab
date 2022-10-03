@@ -247,10 +247,13 @@ class NeRF(pl.LightningModule):
             [self.location_encoder(pts_flat), self.view_direction_encoder(view_directions_flat)], -1)
 
         # query by chunk
-        network_output_flat = []
-        for i in range(0, network_input_flat.shape[0], chunk_size):
-            network_output_flat.append(network(network_input_flat[i:i + chunk_size]))
-        network_output_flat = torch.cat(network_output_flat, 0)
+        if chunk_size > 0:
+            network_output_flat = []
+            for i in range(0, network_input_flat.shape[0], chunk_size):
+                network_output_flat.append(network(network_input_flat[i:i + chunk_size]))
+            network_output_flat = torch.cat(network_output_flat, 0)
+        else:
+            network_output_flat = network(network_input_flat)
 
         # reshape back to index by [rays][sample points]
         network_output = torch.reshape(network_output_flat,
@@ -264,7 +267,7 @@ class NeRF(pl.LightningModule):
         rendered_rays = {}
         for i in range(0, rays.shape[0], self.hparams["batch_size"]):
             rendered_batch_rays = self(rays[i:i + self.hparams["batch_size"]])['fine']
-            for key in rendered_batch_rays:
+            for key in ["rgb_map", "depth_map"]:
                 if key not in rendered_rays:
                     rendered_rays[key] = []
                 rendered_rays[key].append(rendered_batch_rays[key])
