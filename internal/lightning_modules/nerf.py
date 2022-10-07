@@ -127,10 +127,18 @@ class NeRF(pl.LightningModule):
             yaml.dump(dict(self.hparams), f)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        # render an image
         predicted = self.render_single_image(batch)
         print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}")
+
+        # save rgb
         imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}_rgb.png'.format(batch_idx)),
                         to8b(predicted['val/img'].numpy()))
+        # save depth map
+        depth_map = predicted["val/depth_map"]
+        imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}_depth.png'.format(batch_idx)),
+                        depth_map)
+
         return {
             "id": batch_idx,
             "val/loss": predicted["val/loss"],
@@ -282,12 +290,13 @@ class NeRF(pl.LightningModule):
         H, W = shape[0], shape[1]
         img = rendered_rays["rgb_map"].view(H, W, 3).cpu()
         gt_img = gt.view(H, W, 3).cpu()
-        depth_chw = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W))
+        depth_chw, depth_map = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W))
 
         return {
             "val/loss": mse,
             "val/psnr": psnr,
             "val/img": img,
+            "val/depth_map": depth_map,
             "val/depth_chw": depth_chw,
             "val/gt": gt_img,
         }

@@ -198,4 +198,4 @@ def visualize_depth(depth, cmap=cv2.COLORMAP_JET):
     x = (255 * x).astype(np.uint8)
     x_ = Image.fromarray(cv2.applyColorMap(x, cmap))
     x_ = T.ToTensor()(x_)  # (3, H, W)
-    return x_
+    return x_, x
