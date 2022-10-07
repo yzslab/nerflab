@@ -75,7 +75,7 @@ python eval.py \
 - Or more specifically
 ```bash
 python eval.py \
-  --config configs/blender.yaml
+  --config configs/blender.yaml \
   --dataset-path nerf_dataset/nerf_synthetic/lego \
   --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
 ```
