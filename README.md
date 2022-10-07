@@ -67,21 +67,17 @@ python train.py \
 ```
 
 ## Evaluation (Rendering)
-- Blender
+- Example
+```bash
+python eval.py \
+  --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
+```
+- Or more specifically
 ```bash
 python eval.py \
   --config configs/blender.yaml
   --dataset-path nerf_dataset/nerf_synthetic/lego \
-  --exp-name lego \
   --load-ckpt ./ckpts/lego/YOUR_CKPT_FILENAME.ckpt
-```
-- LLFF
-```bash
-python eval.py \
-  --config configs/llff.yaml
-  --dataset-path nerf_dataset/nerf_llff_data/fern \
-  --exp-name fern \
-  --load-ckpt ./ckpts/fern/YOUR_CKPT_FILENAME.ckpt
 ```
 ## Related Documents
 - [bmild/nerf 源码注释](https://www.yuque.com/docs/share/01c0c96c-fdc1-472e-acf4-a83aa59f5c6f)

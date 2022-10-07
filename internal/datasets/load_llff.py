@@ -303,6 +303,8 @@ def load_llff_data(basedir, factor=8, recenter=True, bd_factor=.75, spherify=Fal
     images = images.astype(np.float32)
     poses = poses.astype(np.float32)
 
-    bounding_box = get_bbox3d_for_llff(poses[:, :3, :4], poses[0, :3, -1], near=0.0, far=1.0)
+    near = np.ndarray.min(bds) * .9
+    far = np.ndarray.max(bds) * 1.
+    bounding_box = get_bbox3d_for_llff(poses[:, :3, :4], poses[0, :3, -1], near=near, far=far)
 
     return images, poses, bds, render_poses, i_test, bounding_box
