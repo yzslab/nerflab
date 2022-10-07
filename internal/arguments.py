@@ -22,6 +22,7 @@ def get_arguments(args: list = None):
     hparams.update(hparams_from_arguments)
 
     hparams["n_epoch"] = arguments.n_epoch
+    hparams["exp_name"] = arguments.exp_name
     if arguments.dataset_type is not None:
         hparams["dataset_type"] = arguments.dataset_type
     if arguments.dataset_path is not None:
@@ -29,7 +30,7 @@ def get_arguments(args: list = None):
 
     # fix float parsed as string by yaml
     for k in ["lrate", "perturb", "noise_std"]:
-        if isinstance(hparams[k], str):
+        if k in hparams and isinstance(hparams[k], str):
             hparams[k] = float(hparams[k])
 
     return arguments, hparams
@@ -69,7 +70,7 @@ def get_command_arguments(args=None):
     # parser.add_argument("--white-bkgd", action="store_true",
     #                     help="convert transparent to white, blender only")
 
-    parser.add_argument("--exp-name", type=str, default="nerf")
+    parser.add_argument("--exp-name", type=str, default=None)
     parser.add_argument("--log-dir", type=str, default="logs")
 
     parser.add_argument("--eval-name", type=str, default=None)

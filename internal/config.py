@@ -25,9 +25,10 @@ def load_config_file_list(config_file_list: list, config=None, base_dir: str = "
 
     # load all config file in the list, the former is overridden by the latter
     sub_config = {}
-    for i in config_file_list:
-        # load recursively
-        sub_config.update(load_config(os.path.join(base_dir, i)))
+    if config_file_list is not None:
+        for i in config_file_list:
+            # load recursively
+            sub_config.update(load_config(os.path.join(base_dir, i)))
 
     # sub-config is overridden by parent
     sub_config.update(config)
