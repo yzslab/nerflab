@@ -42,7 +42,7 @@ python train.py \
 python train.py \
   --config configs/llff.yaml \
   --dataset-path nerf_dataset/nerf_llff_data/fern \
-  --exp-name fern \
+  --exp-name fern
 ```
 - Multiresolution Hash Encoding implemented by tiny-cuda-nn
 ```bash
