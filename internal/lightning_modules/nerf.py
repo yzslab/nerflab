@@ -269,12 +269,17 @@ class NeRF(pl.LightningModule):
         return network_output
 
     def render_single_image(self, batch):
-        rays = batch["rays"][0]
         shape = batch["shape"]
 
         rendered_rays = {}
-        for i in range(0, rays.shape[0], self.hparams["batch_size"]):
-            rendered_batch_rays = self(rays[i:i + self.hparams["batch_size"]])['fine']
+        for i in range(0, batch["rays"][0][0].shape[0], self.hparams["batch_size"]):
+            # build batchify ray
+            batchify_rays = []
+            for ray_data_index in range(0, len(batch["rays"])):
+                ray_data = batch["rays"][ray_data_index][0]
+                batchify_rays.append(ray_data[i:i + self.hparams["batch_size"]])
+
+            rendered_batch_rays = self(batchify_rays)['fine']
             for key in ["rgb_map", "depth_map"]:
                 if key not in rendered_rays:
                     rendered_rays[key] = []
@@ -282,7 +287,7 @@ class NeRF(pl.LightningModule):
 
         rendered_rays = {k: torch.concat(rendered_rays[k], 0) for k in rendered_rays}
 
-        gt = extract_rays_rgb(rays)
+        gt = extract_rays_rgb(batch["rays"])[0]
         mse = img2mse(rendered_rays["rgb_map"], gt)
         psnr = mse2psnr(mse)
 

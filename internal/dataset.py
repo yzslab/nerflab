@@ -51,16 +51,18 @@ def image_pixel_to_rays(images, hwf, poses, index_by_image=False):
 
 def extract_rays_data(rays):
     # rays_o, rays_d, near, far, view_direction =
-    return rays[:, 0:3], rays[:, 3:6], rays[:, 9], rays[:, 10], rays[:, 11:14]
+    # return rays[:, 0:3], rays[:, 3:6], rays[:, 9], rays[:, 10], rays[:, 11:14]
     # return rays[:, 0:3], rays[:, 3:6], rays[:, 6:7], rays[:, 7:8], rays[:, 3:6]
+    return rays[0], rays[1], rays[3], rays[4], rays[5]
 
 
 def extract_rays_rgb(rays):
-    return rays[:, 6:9]
+    # return rays[:, 6:9]
     # return rays['rgbs']
+    return rays[2]
 
 
-def concat_rays_data(rays, near, far):
+def build_rays_data(rays, near, far):
     # rays_o, rays_d, rays_rgb = rays[:, 0], rays[:, 1], rays[:, 2]
     rays_o, rays_d, rays_rgb = rays[..., 0, :], rays[..., 1, :], rays[..., 2, :]
     # near = near * torch.ones_like(rays_d[:, :1])
@@ -71,7 +73,8 @@ def concat_rays_data(rays, near, far):
     # view_direction = torch.reshape(view_direction, [-1, 3]).float()
 
     # rays[ray][0-2: o, 3-5: d, 6-8: rgb, 9: near, 10: far, 11-13: norm_d]
-    return torch.concat([rays_o, rays_d, rays_rgb, near, far, view_direction], -1)
+    # return torch.concat([rays_o, rays_d, rays_rgb, near, far, view_direction], -1)
+    return rays_o, rays_d, rays_rgb, near, far, view_direction
 
 
 class NeRFDataset(Dataset):
@@ -86,7 +89,7 @@ class NeRFDataset(Dataset):
             index_by_image = False
         rays = torch.tensor(
             image_pixel_to_rays(images, hwf, np.asarray(poses), index_by_image=index_by_image))
-        self.rays = concat_rays_data(rays, near, far)
+        self.rays = build_rays_data(rays, near, far)
 
         # rays = torch.tensor(image_pixel_to_rays(np.asarray(images), hwf, np.asarray(poses)))
         # rays_o, rays_d, rays_rgb = rays[:, 0], rays[:, 1], rays[:, 2]
@@ -107,20 +110,22 @@ class NeRFDataset(Dataset):
         self.split = split
 
     def __len__(self):
-        return len(self.rays)
+        return len(self.rays[0])
 
     def __getitem__(self, idx):
+        rays = [
+            self.rays[0][idx],
+            self.rays[1][idx],
+            self.rays[2][idx],
+            self.rays[3][idx],
+            self.rays[4][idx],
+            self.rays[5][idx],
+        ]
+
         if self.split == "train":
-            return self.rays[idx]
+            return rays
+
         return {
-            "rays": self.rays[idx],
+            "rays": rays,
             "shape": self.image_shape,
         }
-        # return [
-        #     self.rays[0][idx],
-        #     self.rays[1][idx],
-        #     self.rays[2][idx],
-        #     self.rays[3][idx],
-        #     self.rays[4][idx],
-        #     self.rays[5][idx],
-        # ]
