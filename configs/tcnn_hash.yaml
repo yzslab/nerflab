@@ -3,7 +3,13 @@ include:
   - encoding/tcnn_hash_grid.yaml
   - encoding/tcnn_spherical_harmonics.yaml
 
-batch_size: 8192
-chunk_size: 131072
-lrate: 5e-3
-lrate_decay: 50
+eps: 1e-15
+betas: [0.9, 0.99]
+
+#n_coarse_samples: 64
+#n_fine_samples: 128
+
+batch_size: 4096
+chunk_size: -1
+lrate: 1e-2
+lrate_decay: 125

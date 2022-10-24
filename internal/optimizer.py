@@ -7,8 +7,16 @@ def get_optimizer(models: list, hparams: dict):
     for model in models:
         parameters += list(model.parameters())
 
-    eps = 1e-8
-    optimizer = torch.optim.Adam(parameters, lr=hparams["lrate"], eps=eps)
+    extra_optimizer_params = {
+        "eps": 1e-8,
+    }
+
+    if "betas" in hparams:
+        extra_optimizer_params["betas"] = (hparams["betas"][0], hparams["betas"][1])
+    if "eps" in hparams:
+        extra_optimizer_params["eps"] = float(hparams["eps"])
+
+    optimizer = torch.optim.Adam(parameters, lr=hparams["lrate"], **extra_optimizer_params)
 
     return optimizer
 

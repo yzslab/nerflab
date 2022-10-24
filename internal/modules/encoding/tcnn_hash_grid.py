@@ -44,7 +44,7 @@ class TCNNHashGrid(Encodings):
         if not torch.all(x <= box_max) or not torch.all(x >= box_min):
             print("ALERT: some points are outside bounding box.")
 
-        x = (x + bound) / (2 * bound)  # normalize to [0., 1.]
+        x = (x - box_min) / bound  # normalize to [0., 1.]
         return self.encoder(x)
 
     def get_output_n_channels(self) -> int:

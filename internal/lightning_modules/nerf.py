@@ -164,7 +164,10 @@ class NeRF(pl.LightningModule):
             print(mean_text)
 
     def configure_optimizers(self):
-        self.optimizer = internal.optimizer.get_optimizer([self.location_encoder, self.view_direction_encoder, self.coarse_network, self.fine_network], self.hparams)
+        models = [self.location_encoder, self.view_direction_encoder, self.coarse_network]
+        if self.hparams["n_fine_samples"] > 0:
+            models.append(self.fine_network)
+        self.optimizer = internal.optimizer.get_optimizer(models, self.hparams)
         scheduler = internal.optimizer.get_scheduler(self.optimizer, self.hparams)
 
         return [self.optimizer], [scheduler]
@@ -271,6 +274,10 @@ class NeRF(pl.LightningModule):
     def render_single_image(self, batch):
         shape = batch["shape"]
 
+        render_result_key = "coarse"
+        if self.hparams["n_fine_samples"] > 0:
+            render_result_key = "fine"
+
         rendered_rays = {}
         for i in range(0, batch["rays"][0][0].shape[0], self.hparams["batch_size"]):
             # build batchify ray
@@ -279,7 +286,7 @@ class NeRF(pl.LightningModule):
                 ray_data = batch["rays"][ray_data_index][0]
                 batchify_rays.append(ray_data[i:i + self.hparams["batch_size"]])
 
-            rendered_batch_rays = self(batchify_rays)['fine']
+            rendered_batch_rays = self(batchify_rays)[render_result_key]
             for key in ["rgb_map", "depth_map"]:
                 if key not in rendered_rays:
                     rendered_rays[key] = []
