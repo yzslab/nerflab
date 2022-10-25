@@ -91,7 +91,7 @@ def nerfpl_raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, p
     return rgb_final, [], [], weights, depth_final
 
 
-def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
+def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, sample_dist=None):
     """Transforms model's predictions to semantically meaningful values.
     Args:
         raw: [num_rays, num_samples along ray, 4]. Prediction from model.
@@ -107,8 +107,11 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     raw2alpha = lambda raw, dists, act_fn=F.relu: 1. - torch.exp(-act_fn(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
-    dists = torch.cat([dists, torch.tensor([1e10], device=raw.device).expand(dists[..., :1].shape)],
-                      -1)  # [N_rays, N_samples]
+    if sample_dist is None:
+        dists = torch.cat([dists, torch.tensor([1e10], device=raw.device).expand(dists[..., :1].shape)],
+                          -1)  # [N_rays, N_samples]
+    else:
+        dists = torch.cat([dists, sample_dist * torch.ones_like(dists[..., :1])], dim=-1)
 
     dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
 

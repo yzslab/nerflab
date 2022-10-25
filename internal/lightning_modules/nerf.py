@@ -83,10 +83,13 @@ class NeRF(pl.LightningModule):
             loss += fine_loss
 
         self.log("coarse/loss", coarse_loss, prog_bar=False)
-        self.log("coarse/psnr", coarse_psnr, prog_bar=False)
         if self.hparams["n_fine_samples"] > 0:
+            self.log("coarse/psnr", coarse_psnr, prog_bar=False)
             self.log("fine/loss", fine_loss, prog_bar=False)
             self.log("fine/psnr", fine_psnr, prog_bar=True)
+        else:
+            self.log("coarse/psnr", coarse_psnr, prog_bar=True)
+
         self.log("train/loss", loss)
 
         self.log("lrate", get_learning_rate(self.optimizer), prog_bar=True)
@@ -214,12 +217,18 @@ class NeRF(pl.LightningModule):
                                                                             perturb)
         coarse_network_output = self.run_network(self.coarse_network, coarse_pts, view_directions,
                                                  self.hparams["chunk_size"])
+
+        if self.hparams["network_type"] == "tcnn_ff":
+            sample_dist = (far - near) / n_coarse_samples
+        else:
+            sample_dist = None
         coarse_rgb_map, coarse_disp_map, coarse_acc_map, coarse_weights, coarse_depth_map = rendering.raw2outputs(
             raw=coarse_network_output,
             z_vals=coarse_z_vals,
             rays_d=rays_d,
             raw_noise_std=self.hparams["noise_std"],
-            white_bkgd=self.hparams["white_bkgd"]
+            white_bkgd=self.hparams["white_bkgd"],
+            sample_dist=sample_dist,
         )
 
         results = {
