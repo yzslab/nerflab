@@ -39,6 +39,12 @@ def get_arguments(args: list = None):
         num_workers = 0
     hparams["dataloader_num_workers"] = num_workers
 
+    # set precision
+    precision = 32
+    if "network_type" in hparams and hparams["network_type"] == "tcnn_ff":
+        precision = 16
+    hparams["precision"] = precision
+
     # fix float parsed as string by yaml
     for k in ["lrate", "perturb", "noise_std"]:
         if k in hparams and isinstance(hparams[k], str):
@@ -105,7 +111,7 @@ def get_dataset_by_hparams(hparams):
         raise ValueError(f"unsupported dataset type: {hparams['dataset_type']}")
 
     hparams.update({
-        "bounding_box": bounding_box,
+        "bounding_box": [bounding_box[0], bounding_box[1]],
     })
 
     return train_dataset, test_dataset, val_dataset

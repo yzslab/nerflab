@@ -17,7 +17,8 @@ class TCNNHashGrid(Encodings):
     ):
         super().__init__()
 
-        self.box_min, self.box_max = bounding_box
+        # extract bounding box
+        self.box_min, self.box_max = (torch.tensor(bounding_box[0]), torch.tensor(bounding_box[1]))
         self.bound = self.box_max - self.box_min
 
         # in instant-ngp, max resolution = desired_resolution * bound

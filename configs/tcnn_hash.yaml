@@ -6,8 +6,8 @@ include:
 eps: 1e-15
 betas: [0.9, 0.99]
 
-#n_coarse_samples: 64
-#n_fine_samples: 128
+n_coarse_samples: 512
+n_fine_samples: 0
 
 batch_size: 4096
 chunk_size: -1

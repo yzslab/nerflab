@@ -35,7 +35,7 @@ trainer = pl.Trainer(
     devices=arguments.n_device,
     strategy=DDPStrategy(find_unused_parameters=False) if arguments.n_device > 1 else None,
     logger=False,
-    precision=16 if hparams["network_type"] == "tcnn_ff" else 32,
+    precision=hparams["precision"],
 )
 
 train_dataset, test_dataset, val_dataset = internal.arguments.get_dataset_by_hparams(hparams)

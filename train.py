@@ -54,6 +54,6 @@ trainer = pl.Trainer(
     strategy=DDPStrategy(find_unused_parameters=False) if arguments.n_device > 1 else None,
     num_sanity_val_steps=1,
     limit_val_batches=3,
-    precision=16 if hparams["network_type"] == "tcnn_ff" else 32,
+    precision=hparams["precision"],
 )
 trainer.fit(model=nerf_model, train_dataloaders=train_loader, val_dataloaders=val_loader, **trainer_extra_parameters)

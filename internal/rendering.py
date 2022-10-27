@@ -57,40 +57,6 @@ def generate_fine_sample_points(rays_o, rays_d, coarse_z_vals, coarse_weights, n
     return pts, z_vals
 
 
-def nerfpl_raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False):
-    dir_ = rays_d
-    noise_std = raw_noise_std
-
-    rgbs = raw[..., :3]  # (N_rays, N_samples_, 3)
-    sigmas = raw[..., 3]  # (N_rays, N_samples_)
-
-    # Convert these values using volume rendering (Section 4)
-    deltas = z_vals[:, 1:] - z_vals[:, :-1]  # (N_rays, N_samples_-1)
-    delta_inf = 1e10 * torch.ones_like(deltas[:, :1])  # (N_rays, 1) the last delta is infinity
-    deltas = torch.cat([deltas, delta_inf], -1)  # (N_rays, N_samples_)
-
-    # Multiply each distance by the norm of its corresponding direction ray
-    # to convert to real world distance (accounts for non-unit directions).
-    deltas = deltas * torch.norm(dir_.unsqueeze(1), dim=-1)
-
-    noise = torch.randn(sigmas.shape, device=sigmas.device) * noise_std
-
-    # compute alpha by the formula (3)
-    alphas = 1 - torch.exp(-deltas * torch.relu(sigmas + noise))  # (N_rays, N_samples_)
-    alphas_shifted = \
-        torch.cat([torch.ones_like(alphas[:, :1]), 1 - alphas + 1e-10], -1)  # [1, a1, a2, ...]
-    weights = \
-        alphas * torch.cumprod(alphas_shifted, -1)[:, :-1]  # (N_rays, N_samples_)
-    weights_sum = weights.sum(1)  # (N_rays), the accumulated opacity along the rays
-    # equals "1 - (1-a1)(1-a2)...(1-an)" mathematically
-
-    # compute final weighted outputs
-    rgb_final = torch.sum(weights.unsqueeze(-1) * rgbs, -2)  # (N_rays, 3)
-    depth_final = torch.sum(weights * z_vals, -1)  # (N_rays)
-
-    return rgb_final, [], [], weights, depth_final
-
-
 def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, sample_dist=None):
     """Transforms model's predictions to semantically meaningful values.
     Args:

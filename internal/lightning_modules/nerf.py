@@ -61,6 +61,8 @@ class NeRF(pl.LightningModule):
     def forward(self, rays, perturb: float, raw_noise_std: float):
         """
         :param rays: see internals.dataset.NeRFDataset
+        :param perturb
+        :param raw_noise_std
         :return:
         """
         rays_o, rays_d, near, far, view_direction = extract_rays_data(rays)
@@ -221,7 +223,7 @@ class NeRF(pl.LightningModule):
         coarse_network_output = self.run_network(self.coarse_network, coarse_pts, view_directions,
                                                  self.hparams["chunk_size"])
 
-        if self.hparams["network_type"] == "tcnn_ff":
+        if "network_type" in self.hparams and self.hparams["network_type"] == "tcnn_ff":
             sample_dist = (far - near) / n_coarse_samples
         else:
             sample_dist = None

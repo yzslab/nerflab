@@ -89,5 +89,6 @@ def get_bounding_box_by_hwf(c2w_poses, height: int, width: int, focal_length: fl
             find_min_max(max_point)
 
     return (
-        torch.tensor(min_bound) - torch.tensor([1.0, 1.0, 1.0]),
-        torch.tensor(max_bound) + torch.tensor([1.0, 1.0, 1.0]))
+        (np.asarray(min_bound) - np.asarray([1.0, 1.0, 1.0])).tolist(),
+        (np.asarray(max_bound) + np.asarray([1.0, 1.0, 1.0])).tolist(),
+    )
