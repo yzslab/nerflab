@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 
 import internal.datasets.llff
@@ -27,6 +28,16 @@ def get_arguments(args: list = None):
         hparams["dataset_type"] = arguments.dataset_type
     if arguments.dataset_path is not None:
         hparams["dataset_path"] = arguments.dataset_path
+
+    # set dataloader num_workers
+    num_workers = os.cpu_count()
+    if "num_workers" in hparams:
+        num_workers = hparams["num_workers"]
+    gettrace = getattr(sys, 'gettrace', None)
+    if gettrace():
+        print("debugging mode, set num_workers=0")
+        num_workers = 0
+    hparams["dataloader_num_workers"] = num_workers
 
     # fix float parsed as string by yaml
     for k in ["lrate", "perturb", "noise_std"]:

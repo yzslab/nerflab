@@ -24,6 +24,7 @@ model = NeRFModel.load_from_checkpoint(
     log_dir=arguments.log_dir,
     perturb=0.,
     noise_std=0.,
+    dataloader_num_workers=hparams["dataloader_num_workers"],
     **eval_arguments,
 )
 
@@ -39,5 +40,5 @@ trainer = pl.Trainer(
 
 train_dataset, test_dataset, val_dataset = internal.arguments.get_dataset_by_hparams(hparams)
 
-trainer.predict(model, DataLoader(test_dataset, batch_size=1, shuffle=False),
+trainer.predict(model, DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=hparams["dataloader_num_workers"]),
                 ckpt_path=arguments.load_ckpt)

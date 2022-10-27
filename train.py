@@ -13,9 +13,9 @@ arguments, hparams = internal.arguments.get_arguments()
 train_dataset, test_dataset, val_dataset = internal.arguments.get_dataset_by_hparams(hparams)
 
 # create dataloader
-train_loader = DataLoader(train_dataset, batch_size=hparams["batch_size"], shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=hparams["batch_size"], shuffle=True, num_workers=hparams["dataloader_num_workers"])
 # test_loader = DataLoader(test_dataset, batch_size=hparams["batch"], shuffle=False)
-val_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+val_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=hparams["dataloader_num_workers"])
 
 callbacks = [
     # LearningRateMonitor(logging_interval="step"),
