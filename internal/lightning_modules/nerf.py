@@ -58,7 +58,7 @@ class NeRF(pl.LightningModule):
         # loss calculator
         self.loss_calculator = MSELoss()
 
-    def forward(self, rays):
+    def forward(self, rays, perturb: float, raw_noise_std: float):
         """
         :param rays: see internals.dataset.NeRFDataset
         :return:
@@ -68,13 +68,15 @@ class NeRF(pl.LightningModule):
                                        far=far,
                                        n_coarse_samples=self.hparams["n_coarse_samples"],
                                        n_fine_samples=self.hparams["n_fine_samples"],
-                                       perturb=self.hparams["perturb"])
+                                       perturb=perturb,
+                                       raw_noise_std=raw_noise_std,
+                                       )
 
     def training_step(self, batch, batch_idx):
         # rays_rgb = batch[2]
         rays_rgb = extract_rays_rgb(batch)
         # rendered_rays = self(batch["rays"])
-        rendered_rays = self(batch)
+        rendered_rays = self(batch, self.hparams["perturb"], self.hparams["noise_std"])
 
         coarse_loss, fine_loss, coarse_psnr, fine_psnr = self.loss_calculator(rendered_rays, rays_rgb)
         loss = coarse_loss
@@ -210,7 +212,8 @@ class NeRF(pl.LightningModule):
             far,
             n_coarse_samples,
             n_fine_samples,
-            perturb=1.
+            perturb: float,
+            raw_noise_std: float,
     ):
         # coarse sample
         coarse_pts, coarse_z_vals = rendering.generate_coarse_sample_points(rays_o, rays_d, near, far, n_coarse_samples,
@@ -226,7 +229,7 @@ class NeRF(pl.LightningModule):
             raw=coarse_network_output,
             z_vals=coarse_z_vals,
             rays_d=rays_d,
-            raw_noise_std=self.hparams["noise_std"],
+            raw_noise_std=raw_noise_std,
             white_bkgd=self.hparams["white_bkgd"],
             sample_dist=sample_dist,
         )
@@ -248,7 +251,7 @@ class NeRF(pl.LightningModule):
                 raw=fine_network_output,
                 z_vals=fine_z_vals,
                 rays_d=rays_d,
-                raw_noise_std=self.hparams["noise_std"],
+                raw_noise_std=raw_noise_std,
                 white_bkgd=self.hparams["white_bkgd"]
             )
 
@@ -295,7 +298,7 @@ class NeRF(pl.LightningModule):
                 ray_data = batch["rays"][ray_data_index][0]
                 batchify_rays.append(ray_data[i:i + self.hparams["batch_size"]])
 
-            rendered_batch_rays = self(batchify_rays)[render_result_key]
+            rendered_batch_rays = self(batchify_rays, 0., 0.)[render_result_key]
             for key in ["rgb_map", "depth_map"]:
                 if key not in rendered_rays:
                     rendered_rays[key] = []
