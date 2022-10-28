@@ -1,0 +1,4 @@
+precision: 16
+network_type: tcnn_cutlass
+#location_encoding: tcnn_pe
+#viewdir_encoding: tcnn_pe
