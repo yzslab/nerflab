@@ -40,10 +40,11 @@ def get_arguments(args: list = None):
     hparams["dataloader_num_workers"] = num_workers
 
     # set precision
-    precision = 32
-    if "network_type" in hparams and hparams["network_type"] == "tcnn_ff":
-        precision = 16
-    hparams["precision"] = precision
+    if "precision" not in hparams:
+        precision = 32
+        if "network_type" in hparams and hparams["network_type"] == "tcnn_ff":
+            precision = 16
+        hparams["precision"] = precision
 
     # fix float parsed as string by yaml
     for k in ["lrate", "perturb", "noise_std"]:

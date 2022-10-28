@@ -1,5 +1,5 @@
 import torch.nn
-from internal.modules.nerf_networks import nerf, tcnn_ff
+from internal.modules.nerf_networks import nerf, tcnn_cutlass, tcnn_ff
 
 
 def get_nerf_network(
@@ -34,6 +34,11 @@ def get_nerf_network(
             "density_output_features": hparams["density_output_features"],
         })
         network_class = tcnn_ff.TCNNFullyFusedNeRF
+    elif hparams["network_type"] == "tcnn_cutlass":
+        network_parameters.update({
+            "skips": hparams["skips"],
+        })
+        network_class = tcnn_cutlass.TCNNCutlass
     else:
         raise ValueError(f"unsupported network type: {network_type}")
 
