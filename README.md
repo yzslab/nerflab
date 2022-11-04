@@ -44,6 +44,15 @@ python train.py \
   --dataset-path nerf_dataset/nerf_llff_data/fern \
   --exp-name fern
 ```
+- Accelerate with tiny-cuda-nn cutlass MLP
+```bash
+python train.py \
+  --config \
+    configs/blender.yaml \
+    configs/tcnn_cutlass.yaml \
+  --dataset-path nerf_dataset/nerf_synthetic/lego \
+  --exp-name lego-tcnn-cutlass
+```
 - Multiresolution Hash Encoding implemented by tiny-cuda-nn
 ```bash
 python train.py \
