@@ -220,13 +220,20 @@ class NeRF(pl.LightningModule):
         # coarse sample
         coarse_pts, coarse_z_vals = rendering.generate_coarse_sample_points(rays_o, rays_d, near, far, n_coarse_samples,
                                                                             perturb)
-        coarse_network_output = self.run_network(self.coarse_network, coarse_pts, view_directions,
-                                                 self.hparams["chunk_size"])
-
         if "network_type" in self.hparams and self.hparams["network_type"] == "tcnn_ff":
+            coarse_pts = torch.min(
+                torch.max(
+                    coarse_pts,
+                    torch.tensor(self.hparams["bounding_box"][0], device=coarse_pts.device),
+                ),
+                torch.tensor(self.hparams["bounding_box"][1], device=coarse_pts.device)
+            )  # a manual clip.
             sample_dist = (far - near) / n_coarse_samples
         else:
             sample_dist = None
+
+        coarse_network_output = self.run_network(self.coarse_network, coarse_pts, view_directions,
+                                                 self.hparams["chunk_size"])
         coarse_rgb_map, coarse_disp_map, coarse_acc_map, coarse_weights, coarse_depth_map = rendering.raw2outputs(
             raw=coarse_network_output,
             z_vals=coarse_z_vals,
