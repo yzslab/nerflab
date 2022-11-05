@@ -6,7 +6,7 @@ import cv2
 from PIL import Image
 
 
-def generate_coarse_sample_points(rays_o, rays_d, near, far, n_samples, perturb=1.):
+def generate_coarse_sample_points(rays_o, rays_d, near, far, n_samples, use_disp, perturb=1.):
     n_rays = near.shape[0]
 
     ## broadcast near far for each sample point
@@ -15,10 +15,15 @@ def generate_coarse_sample_points(rays_o, rays_d, near, far, n_samples, perturb=
 
     t_vals = torch.linspace(0., 1., n_samples, device=rays_o.device)
 
-    # not lindisp
-    # Space integration times linearly between 'near' and 'far'. Same
-    # integration points will be used for all rays.
-    z_vals = near * (1. - t_vals) + far * (t_vals)
+    if not use_disp:
+        # not lindisp
+        # Space integration times linearly between 'near' and 'far'. Same
+        # integration points will be used for all rays.
+        z_vals = near * (1. - t_vals) + far * (t_vals)
+    else:
+        # Sample linearly in inverse depth (disparity).
+        z_vals = 1. / (1. / near * (1. - t_vals) + 1. / far * (t_vals))
+
     z_vals = z_vals.expand(n_rays, n_samples)
 
     ## applying perturb sampling time along each ray.

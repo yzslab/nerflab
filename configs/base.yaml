@@ -6,6 +6,7 @@ n_fine_samples: 128
 
 perturb: 1.
 noise_std: 0.
+use_disp: false
 
 white_bkgd: false
 

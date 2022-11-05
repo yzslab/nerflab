@@ -219,7 +219,7 @@ class NeRF(pl.LightningModule):
     ):
         # coarse sample
         coarse_pts, coarse_z_vals = rendering.generate_coarse_sample_points(rays_o, rays_d, near, far, n_coarse_samples,
-                                                                            perturb)
+                                                                            self.hparams["use_disp"], perturb)
         if "network_type" in self.hparams and self.hparams["network_type"] == "tcnn_ff":
             coarse_pts = torch.min(
                 torch.max(
