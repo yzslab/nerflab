@@ -217,17 +217,21 @@ class NeRF(pl.LightningModule):
             perturb: float,
             raw_noise_std: float,
     ):
+        def clip_pts(pts):
+            pts = torch.min(
+                torch.max(
+                    pts,
+                    torch.tensor(self.hparams["bounding_box"][0], device=pts.device),
+                ),
+                torch.tensor(self.hparams["bounding_box"][1], device=pts.device)
+            )  # a manual clip.
+            return pts
+
         # coarse sample
         coarse_pts, coarse_z_vals = rendering.generate_coarse_sample_points(rays_o, rays_d, near, far, n_coarse_samples,
                                                                             self.hparams["use_disp"], perturb)
         if "network_type" in self.hparams and self.hparams["network_type"] == "tcnn_ff":
-            coarse_pts = torch.min(
-                torch.max(
-                    coarse_pts,
-                    torch.tensor(self.hparams["bounding_box"][0], device=coarse_pts.device),
-                ),
-                torch.tensor(self.hparams["bounding_box"][1], device=coarse_pts.device)
-            )  # a manual clip.
+            coarse_pts = clip_pts(coarse_pts)
             sample_dist = (far - near) / n_coarse_samples
         else:
             sample_dist = None
@@ -254,6 +258,9 @@ class NeRF(pl.LightningModule):
                                                                           n_fine_samples=n_fine_samples,
                                                                           coarse_weights=coarse_weights,
                                                                           perturb=perturb)
+            if "network_type" in self.hparams and self.hparams["network_type"] == "tcnn_ff":
+                fine_pts = clip_pts(fine_pts)
+
             fine_network_output = self.run_network(self.fine_network, fine_pts, view_directions,
                                                    self.hparams["chunk_size"])
             fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map = rendering.raw2outputs(
@@ -261,7 +268,8 @@ class NeRF(pl.LightningModule):
                 z_vals=fine_z_vals,
                 rays_d=rays_d,
                 raw_noise_std=raw_noise_std,
-                white_bkgd=self.hparams["white_bkgd"]
+                white_bkgd=self.hparams["white_bkgd"],
+                sample_dist=sample_dist,
             )
 
             results['fine'] = generate_sample_output(fine_network_output, fine_rgb_map, fine_disp_map, fine_acc_map,
