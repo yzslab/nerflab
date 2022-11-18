@@ -10,6 +10,8 @@ use_disp: false
 
 white_bkgd: false
 
+sample_type: "coarse2fine"
+
 include:
   - "network/paper.yaml"
   - "encoding/positional_encoding.yaml"
