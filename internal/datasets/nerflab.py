@@ -221,14 +221,15 @@ def load_nerflab_dataset(
 
         # read image rgb
         # image_rgb = iio.imread(os.path.join(image_dir, image_filename))
-        image_rgb = cv2.imread(os.path.join(image_dir, image_filename))
-        image_rgb = cv2.undistort(
-            image_rgb,
+        image_bgr = cv2.imread(os.path.join(image_dir, image_filename))
+        image_bgr = cv2.undistort(
+            image_bgr,
             camera_intrinsic_matrix[camera_id],
             camera_dist_coeffs[camera_id],
             None,
             camera_optimal_new_intrinsic_matrix[camera_id]
         )
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         # down sample
         if down_sample_factor > 1:
             image_rgb = cv2.resize(image_rgb, image_rgb.shape[:2] // down_sample_factor)
