@@ -199,7 +199,7 @@ def load_nerflab_dataset(
     image_filename_list.sort()
     pbar = tqdm(image_filename_list)
     for image_filename in pbar:
-        pbar.set_description("Processing {}".format(image_filename))
+        # pbar.set_description("Processing {}".format(image_filename))
 
         image_information = transforms["images"][image_filename]
 
@@ -219,20 +219,39 @@ def load_nerflab_dataset(
 
         camera_id = image_information["camera_id"]
 
-        # read image rgb
-        # image_rgb = iio.imread(os.path.join(image_dir, image_filename))
-        image_bgr = cv2.imread(os.path.join(image_dir, image_filename))
-        image_bgr = cv2.undistort(
-            image_bgr,
-            camera_intrinsic_matrix[camera_id],
-            camera_dist_coeffs[camera_id],
-            None,
-            camera_optimal_new_intrinsic_matrix[camera_id]
-        )
-        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        # down sample
+        # create processed file path
+        processed_image_dir = image_dir.rstrip("/")
+        if not (camera_dist_coeffs[camera_id] == 0).all():
+            processed_image_dir = "{}_undistorted".format(processed_image_dir)
         if down_sample_factor > 1:
-            image_rgb = cv2.resize(image_rgb, image_rgb.shape[:2] // down_sample_factor)
+            processed_image_dir = "{}_resized_{}".format(processed_image_dir, down_sample_factor)
+        image_file_path = os.path.join(processed_image_dir, image_filename)
+
+        if os.path.exists(image_file_path):
+            # load processed file
+            pbar.set_description("Loading {}".format(image_file_path))
+            image_bgr = cv2.imread(image_file_path)
+        else:
+            # read image rgb
+            # image_rgb = iio.imread(os.path.join(image_dir, image_filename))
+            pbar.set_description("Loading {}".format(os.path.join(image_dir, image_filename)))
+            image_bgr = cv2.imread(os.path.join(image_dir, image_filename))
+            image_bgr = cv2.undistort(
+                image_bgr,
+                camera_intrinsic_matrix[camera_id],
+                camera_dist_coeffs[camera_id],
+                None,
+                camera_optimal_new_intrinsic_matrix[camera_id]
+            )
+            # down sample
+            if down_sample_factor > 1:
+                image_bgr = cv2.resize(image_bgr, (camera["w"], camera["h"]), interpolation=cv2.INTER_AREA)
+            # save processed image
+            os.makedirs(os.path.dirname(image_file_path), exist_ok=True)
+            cv2.imwrite(image_file_path, image_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+
+        # reorder color channel
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         ## reshape and normalize rgb
         image_rgb = torch.tensor(
             image_rgb.reshape((-1, image_rgb.shape[-1])) / 255.,  # normalize rgb
