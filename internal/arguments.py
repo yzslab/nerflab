@@ -4,6 +4,7 @@ import argparse
 
 import internal.datasets.llff
 import internal.datasets.blender
+import internal.datasets.nerflab
 from pytorch_lightning.loggers import TensorBoardLogger
 from internal.config import load_config_file_list, parse_config_values
 
@@ -103,11 +104,23 @@ def get_dataset_by_hparams(hparams):
         print(f"llff: down_sample_factor={hparams['llff_down_sample_factor']}, hold={hparams['llff_hold']}")
         train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.llff.get_llff_dataset(
             hparams['dataset_path'], hparams['llff_down_sample_factor'], hparams['llff_hold'])
-    elif hparams['dataset_type'] == "blender":
+    elif hparams["dataset_type"] == "blender":
         print(f"blender: white_backgound={hparams['white_bkgd']}, half_resolution={hparams['blender_half_resolution']}")
         train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.blender.get_blender_dataset(
             hparams['dataset_path'], white_bkgd=hparams['white_bkgd'],
             half_resolution=hparams['blender_half_resolution'])
+    elif hparams["dataset_type"] == "nerflab":
+        print(
+            f"nerflab:image_dir={hparams['image_dir']}, near={hparams['near']}, far={hparams['far']}, down_sample_factor={hparams['down_sample_factor']}, use_pose_depth={hparams['use_pose_depth']}")
+        train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.nerflab.load_nerflab_dataset(
+            dataset_path=hparams['dataset_path'],
+            image_dir=hparams["image_dir"],
+            near=hparams['near'],
+            far=hparams['far'],
+            hold_for_test=hparams['hold_for_test'],
+            down_sample_factor=hparams['down_sample_factor'],
+            use_pose_depth=hparams['use_pose_depth'],
+        )
     else:
         raise ValueError(f"unsupported dataset type: {hparams['dataset_type']}")
 

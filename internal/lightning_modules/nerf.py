@@ -111,12 +111,17 @@ class NeRF(pl.LightningModule):
         predicted = self.render_single_image(batch)
         print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}")
 
+        output_filename = "{:06d}".format(batch_idx)
+        if "filename" in batch:
+            output_filename = batch["filename"][0]
+            os.makedirs(os.path.join(self.val_save_dir, os.path.dirname(output_filename)), exist_ok=True)
+
         # save rgb
-        imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}_rgb.png'.format(batch_idx)),
+        imageio.imwrite(os.path.join(self.val_save_dir, '{}_rgb.png'.format(output_filename)),
                         to8b(predicted['val/img'].numpy()))
         # save depth map
         depth_map = predicted["val/depth_map"]
-        imageio.imwrite(os.path.join(self.val_save_dir, '{:06d}_depth.png'.format(batch_idx)),
+        imageio.imwrite(os.path.join(self.val_save_dir, '{}_depth.png'.format(output_filename)),
                         depth_map)
 
         return {

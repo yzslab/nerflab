@@ -1,0 +1,9 @@
+include: base.yaml
+dataset_type: nerflab
+image_dir: null
+down_sample_factor: 4
+hold_for_test: 8
+noise_std: 1e0
+use_pose_depth: true
+near: null
+far: null
