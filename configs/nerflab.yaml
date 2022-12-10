@@ -7,3 +7,4 @@ noise_std: 1e0
 use_pose_depth: true
 near: null
 far: null
+no_undistort: true  # undistort via colmap is recommended

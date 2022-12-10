@@ -82,6 +82,7 @@ def load_nerflab_dataset(
         load_test_set: bool = True,
         load_validation_set: bool = True,
         use_pose_depth: bool = True,
+        no_undistort: bool = True,
 ):
     # auto set down sampled image path
     if image_dir is None:
@@ -124,33 +125,39 @@ def load_nerflab_dataset(
 
     # build undistort parameters
     camera_dist_coeffs = {}
+    camera_is_distorted = {}
     camera_intrinsic_matrix = {}
     camera_optimal_new_intrinsic_matrix = {}
     for camera_id in transforms["cameras"]:
         camera = transforms["cameras"][camera_id]
 
-        dist_coeffs = np.array([camera["k1"], camera["k2"], camera["p1"], camera["p2"]])
-        camera_dist_coeffs[camera_id] = dist_coeffs
+        if no_undistort is True:
+            camera_is_distorted[camera_id] = False
+        else:
+            dist_coeffs = np.array([camera["k1"], camera["k2"], camera["p1"], camera["p2"]])
+            camera_dist_coeffs[camera_id] = dist_coeffs
+            camera_is_distorted[camera_id] = not (dist_coeffs == 0).all()
 
-        # build intrinsic matrix
-        K = np.identity(3)
-        K[0, 0] = camera["fl_x"]
-        K[1, 1] = camera["fl_y"]
-        K[0, 2] = camera["cx"]
-        K[1, 2] = camera["cy"]
+        if camera_is_distorted[camera_id]:
+            # build intrinsic matrix
+            K = np.identity(3)
+            K[0, 0] = camera["fl_x"]
+            K[1, 1] = camera["fl_y"]
+            K[0, 2] = camera["cx"]
+            K[1, 2] = camera["cy"]
 
-        camera_intrinsic_matrix[camera_id] = K
+            camera_intrinsic_matrix[camera_id] = K
 
-        optimal_K, _ = cv2.getOptimalNewCameraMatrix(
-            K, dist_coeffs, (camera["w"], camera["h"]), 0, (camera["w"], camera["h"])
-        )
-        camera_optimal_new_intrinsic_matrix[camera_id] = optimal_K
+            optimal_K, _ = cv2.getOptimalNewCameraMatrix(
+                K, dist_coeffs, (camera["w"], camera["h"]), 0, (camera["w"], camera["h"])
+            )
+            camera_optimal_new_intrinsic_matrix[camera_id] = optimal_K
 
-        # update camera intrinsics dict
-        camera["fl_x"] = optimal_K[0, 0]
-        camera["fl_y"] = optimal_K[1, 1]
-        camera["cx"] = optimal_K[0, 2]
-        camera["cy"] = optimal_K[1, 2]
+            # update camera intrinsics dict
+            camera["fl_x"] = optimal_K[0, 0]
+            camera["fl_y"] = optimal_K[1, 1]
+            camera["cx"] = optimal_K[0, 2]
+            camera["cy"] = optimal_K[1, 2]
 
     # process camera parameters with down scale factor
     if down_sample_factor is not None and down_sample_factor > 1:
@@ -218,10 +225,11 @@ def load_nerflab_dataset(
             continue
 
         camera_id = image_information["camera_id"]
+        camera = transforms["cameras"][camera_id]
 
         # create processed file path
         processed_image_dir = image_dir.rstrip("/")
-        if not (camera_dist_coeffs[camera_id] == 0).all():
+        if camera_is_distorted[camera_id]:
             processed_image_dir = "{}_undistorted".format(processed_image_dir)
         if down_sample_factor > 1:
             processed_image_dir = "{}_resized_{}".format(processed_image_dir, down_sample_factor)
@@ -236,16 +244,19 @@ def load_nerflab_dataset(
             # image_rgb = iio.imread(os.path.join(image_dir, image_filename))
             pbar.set_description("Loading {}".format(os.path.join(image_dir, image_filename)))
             image_bgr = cv2.imread(os.path.join(image_dir, image_filename))
-            image_bgr = cv2.undistort(
-                image_bgr,
-                camera_intrinsic_matrix[camera_id],
-                camera_dist_coeffs[camera_id],
-                None,
-                camera_optimal_new_intrinsic_matrix[camera_id]
-            )
+            if camera_is_distorted[camera_id]:
+                image_bgr = cv2.undistort(
+                    image_bgr,
+                    camera_intrinsic_matrix[camera_id],
+                    camera_dist_coeffs[camera_id],
+                    None,
+                    camera_optimal_new_intrinsic_matrix[camera_id]
+                )
             # down sample
             if down_sample_factor > 1:
-                image_bgr = cv2.resize(image_bgr, (camera["w"], camera["h"]), interpolation=cv2.INTER_AREA)
+                # image_bgr = cv2.resize(image_bgr, (camera["w"], camera["h"]), interpolation=cv2.INTER_AREA)
+                while image_bgr.shape[0] > camera["h"]:
+                    image_bgr = cv2.pyrDown(image_bgr, dstsize=(image_bgr.shape[1] // 2, image_bgr.shape[0] // 2))
             # save processed image
             os.makedirs(os.path.dirname(image_file_path), exist_ok=True)
             cv2.imwrite(image_file_path, image_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
@@ -271,7 +282,6 @@ def load_nerflab_dataset(
         # create rays
         ## get image camera information
         c2w = torch.tensor(image_information["c2w"], dtype=torch.double)
-        camera = transforms["cameras"][camera_id]
 
         ## get rays origin and direction
         rays_o, rays_d = get_rays(
