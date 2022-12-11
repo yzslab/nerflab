@@ -4,11 +4,14 @@ import pytorch_lightning as pl
 import yaml
 import internal.optimizer
 import internal.rendering as rendering
+from kornia.losses import ssim_loss
 from internal.dataset import extract_rays_data, extract_rays_rgb
 from internal.modules.loss.mse import MSELoss, img2mse, mse2psnr
 import imageio
 import numpy as np
 import internal.nerf_sampling.coarse2fine
+
+
 # import internal.nerf_sampling.coarse2fine_single_network
 
 
@@ -85,14 +88,17 @@ class NeRF(pl.LightningModule):
         return {
             "val/loss": rendered["val/loss"],
             "val/psnr": rendered["val/psnr"],
+            "val/ssim": rendered["val/ssim"],
         }
 
     def validation_epoch_end(self, outputs):
         mean_loss = torch.stack([x["val/loss"] for x in outputs]).mean()
         mean_acc = torch.stack([x["val/psnr"] for x in outputs]).mean()
+        mean_ssim = torch.stack([x["val/ssim"] for x in outputs]).mean()
 
         self.log("val/loss", mean_loss, prog_bar=True)
         self.log("val/psnr", mean_acc, prog_bar=True)
+        self.log("val/ssim", mean_ssim, prog_bar=True)
 
     def on_predict_epoch_start(self):
         self.val_save_dir = os.path.join(
@@ -109,7 +115,7 @@ class NeRF(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         # render an image
         predicted = self.render_single_image(batch)
-        print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}")
+        print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}, ssim: {predicted['val/ssim']}")
 
         output_filename = "{:06d}".format(batch_idx)
         if "filename" in batch:
@@ -128,22 +134,26 @@ class NeRF(pl.LightningModule):
             "id": batch_idx,
             "val/loss": predicted["val/loss"],
             "val/psnr": predicted["val/psnr"][0],
+            "val/ssim": predicted["val/ssim"],
             "val/img": predicted["val/img"],
         }
 
     def on_predict_epoch_end(self, results):
         loss_values = []
         psnr_values = []
+        ssim_values = []
         with open(os.path.join(self.val_save_dir, "metrics.txt"), mode="w") as f:
             for i in results:
                 for image in i:
                     loss_values.append(image["val/loss"])
                     psnr_values.append(image["val/psnr"])
-                    f.write(f"#{image['id']} loss: {image['val/loss']}, psnr: {image['val/psnr']}\n")
+                    ssim_values.append(image["val/ssim"])
+                    f.write(f"#{image['id']} loss: {image['val/loss']}, psnr: {image['val/psnr']}, ssim: {image['val/ssim']}\n")
             mean_loss = torch.tensor(loss_values).mean()
             mean_psnr = torch.tensor(psnr_values).mean()
+            mean_ssim = torch.tensor(ssim_values).mean()
 
-            mean_text = f"mean: loss: {mean_loss}, psnr: {mean_psnr}"
+            mean_text = f"mean: loss: {mean_loss}, psnr: {mean_psnr}, ssim: {mean_ssim}"
             f.write(mean_text)
             f.write("\n")
             print(mean_text)
@@ -208,15 +218,23 @@ class NeRF(pl.LightningModule):
         mse = img2mse(rendered_rays["rgb_map"], gt)
         psnr = mse2psnr(mse)
 
-        # save image
+        # reshape image
         H, W = shape[0], shape[1]
-        img = rendered_rays["rgb_map"].view(H, W, 3).cpu()
-        gt_img = gt.view(H, W, 3).cpu()
+        img = rendered_rays["rgb_map"].view(H, W, 3)
+        gt_img = gt.view(H, W, 3)
+
+        dssim_ = ssim_loss(img.permute(2, 0, 1)[None,...], gt_img.permute(2, 0, 1)[None,...], 3, reduction="mean")  # dissimilarity in [0, 1]
+        ssim = 1 - 2 * dssim_
+
+        # save image
+        img = img.cpu()
+        gt_img = gt.cpu()
         depth_chw, depth_map = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W))
 
         return {
             "val/loss": mse,
             "val/psnr": psnr,
+            "val/ssim": ssim,
             "val/img": img,
             "val/depth_map": depth_map,
             "val/depth_chw": depth_chw,
