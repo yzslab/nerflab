@@ -228,7 +228,7 @@ class NeRF(pl.LightningModule):
 
         # save image
         img = img.cpu()
-        gt_img = gt.cpu()
+        gt_img = gt_img.cpu()
         depth_chw, depth_map = rendering.visualize_depth(rendered_rays[f'depth_map'].view(H, W))
 
         return {
