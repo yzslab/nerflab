@@ -10,19 +10,15 @@ cd nerflab
 
 pip install -r requirements.txt
 ```
-- Optionally: install tiny-cuda-nn PyTorch extension (Only require if you need tiny-cuda-nn accelerate)
+- install tiny-cuda-nn PyTorch extension (Only require if you need tiny-cuda-nn accelerate)
 ```bash
-export CUDA_VERSION="11.3"
+export CUDA_VERSION="11.7"
 export MAKEFLAGS="-j$(nproc)"
 export PATH="/usr/local/cuda-${CUDA_VERSION}/bin:${PATH}"
 export LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_VERSION}/lib64:/usr/lib/wsl/lib/:${LD_LIBRARY_PATH}"
 export LIBRARY_PATH="${LD_LIBRARY_PATH}:${LIBRARY_PATH}"
 
-git submodule sync --recursive
-git submodule update --init --recursive
-
-pushd dependencies/tiny-cuda-nn/bindings/torch
-python setup.py install
+pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
 popd
 ```
 - Dataset preparation
