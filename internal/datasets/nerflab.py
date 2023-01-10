@@ -3,6 +3,7 @@ import numpy as np
 import imageio.v3 as iio
 import cv2
 import torch
+import yaml
 
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -73,7 +74,7 @@ def load_nerflab_dataset(
         dataset_path: str = None,
         npy_file_name: str = "transforms.npy",
         image_dir: str = None,
-        split_file_name: str = None,
+        split_filename: str = None,
         hold_for_test: int = 8,
         near: float = None,
         far: float = None,
@@ -83,10 +84,13 @@ def load_nerflab_dataset(
         load_validation_set: bool = True,
         use_pose_depth: bool = True,
         no_undistort: bool = True,
+        no_concat_train_set: bool = False,
 ):
     # auto set down sampled image path
     if image_dir is None:
         image_dir = "images"
+    if split_filename is None:
+        split_filename = "split.yaml"
         # if down_sample_factor is not None and down_sample_factor != 1:
         #     image_dir = "{}_{}".format(image_dir, down_sample_factor)
 
@@ -101,10 +105,50 @@ def load_nerflab_dataset(
 
         npy_file_name = join_path_if_available(npy_file_name)
         image_dir = join_path_if_available(image_dir)
-        split_file_name = join_path_if_available(split_file_name)
+        split_filename = join_path_if_available(split_filename)
 
     # use split file?
-    if split_file_name is not None:
+    def split_by_idx(filename: str, idx: int):
+        split_key = []
+        if idx % hold_for_test == 0:
+            if load_test_set is True:
+                split_key.append(1)
+            if load_validation_set is True:
+                split_key.append(2)
+        elif load_train_set is True:
+            split_key.append(0)
+
+        return split_key
+
+    split2set = split_by_idx
+
+    # if split file exists
+    if os.path.exists(split_filename):
+        with open(split_filename, "r") as f:
+            split_list = yaml.safe_load(f)
+        # copy test set to validation set if not provided
+        if "val" not in split_list:
+            split_list["val"] = split_list["test"]
+
+        def split_by_filename(filename: str, idx: int):
+            split_key = []
+            if filename in split_list["test"] and load_test_set is True:
+                split_key.append(1)
+            if filename in split_list["val"] and load_validation_set is True:
+                split_key.append(2)
+
+            # append to train set if listed in train list
+            # if train list not defined, append to train set if not listed in test and val set
+            if "train" in split_list:
+                if filename in split_list["train"] and load_train_set is True:
+                    split_key.append(0)
+            elif len(split_key) == 0 and load_train_set is True:
+                split_key.append(0)
+
+            return split_key
+
+        split2set = split_by_filename
+
         hold_for_test = 0
 
     # bounding box for hash encoding
@@ -211,14 +255,14 @@ def load_nerflab_dataset(
         image_information = transforms["images"][image_filename]
 
         # split
-        set_key_list = []
-        if hold_for_test > 1 and image_count % hold_for_test == 0:
-            if load_test_set is True:
-                set_key_list.append(1)
-            if load_validation_set is True:
-                set_key_list.append(2)
-        elif load_train_set is True:
-            set_key_list.append(0)
+        set_key_list = split2set(image_filename, image_count)
+        # if hold_for_test > 1 and image_count % hold_for_test == 0:
+        #     if load_test_set is True:
+        #         set_key_list.append(1)
+        #     if load_validation_set is True:
+        #         set_key_list.append(2)
+        # elif load_train_set is True:
+        #     set_key_list.append(0)
         image_count += 1
 
         if len(set_key_list) == 0:
@@ -322,18 +366,20 @@ def load_nerflab_dataset(
             all_near[split_key].append(rays_near)
             all_far[split_key].append(rays_far)
 
-            if split_key != 0:
-                all_image_filename[split_key].append(image_filename)
-                all_image_camera_id[split_key].append(camera_id)
-                all_cameras[split_key][camera_id] = camera
+            all_image_filename[split_key].append(image_filename)
+            all_image_camera_id[split_key].append(camera_id)
+            all_cameras[split_key][camera_id] = camera
+
+    print("train: {}, test: {}, val: {}, near: {}, far: {}".format(len(all_rgb[0]), len(all_rgb[1]), len(all_rgb[2]), scene_depth_min, scene_depth_max))
 
     # convert train list to tensor
-    all_rgb[0] = torch.concat(all_rgb[0], 0)
-    all_rays_o[0] = torch.concat(all_rays_o[0], 0)
-    all_rays_d[0] = torch.concat(all_rays_d[0], 0)
-    all_view_d[0] = torch.concat(all_view_d[0], 0)
-    all_near[0] = torch.concat(all_near[0], 0)
-    all_far[0] = torch.concat(all_far[0], 0)
+    if no_concat_train_set is False:
+        all_rgb[0] = torch.concat(all_rgb[0], 0)
+        all_rays_o[0] = torch.concat(all_rays_o[0], 0)
+        all_rays_d[0] = torch.concat(all_rays_d[0], 0)
+        all_view_d[0] = torch.concat(all_view_d[0], 0)
+        all_near[0] = torch.concat(all_near[0], 0)
+        all_far[0] = torch.concat(all_far[0], 0)
 
     def create_dataset(key):
         return NeRFLabDataset(
@@ -399,6 +445,8 @@ class NeRFLabDataset(Dataset):
         self.image_camera_id = image_camera_id
         self.cameras = cameras
 
+        self.is_list = isinstance(self.rays_rgb, list)
+
     def __len__(self):
         return len(self.rays_rgb)
 
@@ -412,7 +460,7 @@ class NeRFLabDataset(Dataset):
             self.view_d[idx],
         ]
 
-        if self.split == 0:
+        if self.is_list is False:
             return rays
 
         camera_id = self.image_camera_id[idx]
