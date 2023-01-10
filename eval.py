@@ -38,6 +38,7 @@ trainer = pl.Trainer(
     precision=hparams["precision"],
 )
 
+hparams["no_concat_train_set"] = True
 train_dataset, test_dataset, val_dataset = internal.arguments.get_dataset_by_hparams(hparams)
 
 trainer.predict(model, DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=hparams["dataloader_num_workers"]),

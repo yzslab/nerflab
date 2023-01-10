@@ -1,5 +1,5 @@
---extra-index-url https://download.pytorch.org/whl/cu113
-torch==1.12.1
+#--extra-index-url https://download.pytorch.org/whl/cu113
+torch==1.13.0
 torchvision
 torchaudio
 pytorch-lightning==1.7.*

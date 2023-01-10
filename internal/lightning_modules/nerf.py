@@ -129,6 +129,9 @@ class NeRF(pl.LightningModule):
         depth_map = predicted["val/depth_map"]
         imageio.imwrite(os.path.join(self.val_save_dir, '{}_depth.png'.format(output_filename)),
                         depth_map)
+        colored_depth_map = predicted["val/depth_chw"]
+        imageio.imwrite(os.path.join(self.val_save_dir, '{}_depth_colored.png'.format(output_filename)),
+                        to8b(colored_depth_map.permute(1, 2, 0).numpy()))
 
         return {
             "id": batch_idx,

@@ -112,6 +112,9 @@ def get_dataset_by_hparams(hparams):
     elif hparams["dataset_type"] == "nerflab":
         print(
             f"nerflab:image_dir={hparams['image_dir']}, near={hparams['near']}, far={hparams['far']}, down_sample_factor={hparams['down_sample_factor']}, use_pose_depth={hparams['use_pose_depth']}, no_undistort={hparams['no_undistort']}")
+        no_concat_train_set = False
+        if "no_concat_train_set" in hparams:
+            no_concat_train_set = hparams["no_concat_train_set"]
         train_dataset, test_dataset, val_dataset, bounding_box = internal.datasets.nerflab.load_nerflab_dataset(
             dataset_path=hparams['dataset_path'],
             image_dir=hparams["image_dir"],
@@ -121,6 +124,7 @@ def get_dataset_by_hparams(hparams):
             down_sample_factor=hparams['down_sample_factor'],
             use_pose_depth=hparams['use_pose_depth'],
             no_undistort=hparams['no_undistort'],
+            no_concat_train_set=no_concat_train_set,
         )
     else:
         raise ValueError(f"unsupported dataset type: {hparams['dataset_type']}")
