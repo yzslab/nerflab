@@ -9,7 +9,6 @@ from internal.dataset import extract_rays_data, extract_rays_rgb
 from internal.modules.loss.mse import MSELoss, img2mse, mse2psnr
 import imageio
 import numpy as np
-import internal.nerf_sampling.coarse2fine
 
 
 # import internal.nerf_sampling.coarse2fine_single_network
@@ -24,8 +23,13 @@ class NeRF(pl.LightningModule):
         self.save_hyperparameters(hparams),
 
         sample_type = hparams["sample_type"]
+        self.sample_type = sample_type
         if sample_type == "coarse2fine":
+            import internal.nerf_sampling.coarse2fine
             self.sampling = internal.nerf_sampling.coarse2fine.Coarse2Fine(hparams)
+        elif sample_type == "mipnerf":
+            import internal.mipnerf.sampling
+            self.sampling = internal.mipnerf.sampling.MipNeRFSampling(hparams)
         # elif sample_type == "coarse2fine_sn":
         #     self.sampling = internal.nerf_sampling.coarse2fine_single_network.Coarse2FineSingleNetwork(hparams)
         else:
@@ -41,14 +45,26 @@ class NeRF(pl.LightningModule):
         :param raw_noise_std
         :return:
         """
-        rays_o, rays_d, near, far, view_direction = extract_rays_data(rays)
-        return self.sampling(rays_o=rays_o, rays_d=rays_d, view_directions=view_direction, near=near,
-                             far=far,
-                             n_coarse_samples=self.hparams["n_coarse_samples"],
-                             n_fine_samples=self.hparams["n_fine_samples"],
-                             perturb=perturb,
-                             raw_noise_std=raw_noise_std,
-                             )
+        rays_o, rays_d, near, far, view_direction, radii = extract_rays_data(rays)
+        if self.sample_type == "mipnerf":
+            return self.sampling(rays_o=rays_o, rays_d=rays_d, view_directions=view_direction,
+                                 radii=radii,
+                                 near=near,
+                                 far=far,
+                                 n_coarse_samples=self.hparams["n_coarse_samples"],
+                                 n_fine_samples=self.hparams["n_fine_samples"],
+                                 perturb=perturb,
+                                 raw_noise_std=raw_noise_std,
+                                 )
+        else:
+            return self.sampling(rays_o=rays_o, rays_d=rays_d, view_directions=view_direction,
+                                 near=near,
+                                 far=far,
+                                 n_coarse_samples=self.hparams["n_coarse_samples"],
+                                 n_fine_samples=self.hparams["n_fine_samples"],
+                                 perturb=perturb,
+                                 raw_noise_std=raw_noise_std,
+                                 )
 
     def training_step(self, batch, batch_idx):
         # rays_rgb = batch[2]
@@ -115,7 +131,8 @@ class NeRF(pl.LightningModule):
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         # render an image
         predicted = self.render_single_image(batch)
-        print(f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}, ssim: {predicted['val/ssim']}")
+        print(
+            f"#{batch_idx} loss: {predicted['val/loss']}, psnr: {predicted['val/psnr'][0]}, ssim: {predicted['val/ssim']}")
 
         output_filename = "{:06d}".format(batch_idx)
         if "filename" in batch:
@@ -151,7 +168,8 @@ class NeRF(pl.LightningModule):
                     loss_values.append(image["val/loss"])
                     psnr_values.append(image["val/psnr"])
                     ssim_values.append(image["val/ssim"])
-                    f.write(f"#{image['id']} loss: {image['val/loss']}, psnr: {image['val/psnr']}, ssim: {image['val/ssim']}\n")
+                    f.write(
+                        f"#{image['id']} loss: {image['val/loss']}, psnr: {image['val/psnr']}, ssim: {image['val/ssim']}\n")
             mean_loss = torch.tensor(loss_values).mean()
             mean_psnr = torch.tensor(psnr_values).mean()
             mean_ssim = torch.tensor(ssim_values).mean()
@@ -226,7 +244,8 @@ class NeRF(pl.LightningModule):
         img = rendered_rays["rgb_map"].view(H, W, 3)
         gt_img = gt.view(H, W, 3)
 
-        dssim_ = ssim_loss(img.permute(2, 0, 1)[None,...], gt_img.permute(2, 0, 1)[None,...], 3, reduction="mean")  # dissimilarity in [0, 1]
+        dssim_ = ssim_loss(img.permute(2, 0, 1)[None, ...], gt_img.permute(2, 0, 1)[None, ...], 3,
+                           reduction="mean")  # dissimilarity in [0, 1]
         ssim = 1 - 2 * dssim_
 
         # save image

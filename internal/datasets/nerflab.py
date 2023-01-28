@@ -232,6 +232,7 @@ def load_nerflab_dataset(
     all_rgb = create_split_list()
     all_rays_o = create_split_list()
     all_rays_d = create_split_list()
+    all_radii = create_split_list()  # pixel radius
     all_view_d = create_split_list()
     all_near = create_split_list()
     all_far = create_split_list()
@@ -336,9 +337,19 @@ def load_nerflab_dataset(
         )  # [pose index][height][width] = [x, y, z]
         rays_o = rays_o[0]
         rays_d = rays_d[0]
+
+        # calculate the radius
+        ## calculate pixel center distance: right_pixel - left_pixel
+        dx_1 = torch.sqrt(
+            torch.sum((rays_d[:-1, :, :] - rays_d[1:, :, :]) ** 2, -1))
+        dx = torch.cat([dx_1, dx_1[-2:-1, :]], 0)
+        ## radii * 2/sqrt(12): https://github.com/google/mipnerf/issues/5
+        radii = dx[..., None] * 2 / torch.sqrt(torch.tensor(12))
+
         ### reshape -> [pixel index] = [x, y, z]
         rays_o = rays_o.reshape(-1, 3)
         rays_d = rays_d.reshape(-1, 3)
+        radii = radii.view(-1, 1)
 
         ### update bounding box
         W = int(camera["w"])
@@ -362,6 +373,7 @@ def load_nerflab_dataset(
             all_rgb[split_key].append(image_rgb)
             all_rays_o[split_key].append(rays_o)
             all_rays_d[split_key].append(rays_d)
+            all_radii[split_key].append(radii)
             all_view_d[split_key].append(view_d)
             all_near[split_key].append(rays_near)
             all_far[split_key].append(rays_far)
@@ -370,13 +382,20 @@ def load_nerflab_dataset(
             all_image_camera_id[split_key].append(camera_id)
             all_cameras[split_key][camera_id] = camera
 
-    print("train: {}, test: {}, val: {}, near: {}, far: {}".format(len(all_rgb[0]), len(all_rgb[1]), len(all_rgb[2]), scene_depth_min, scene_depth_max))
+    print("train: {}, test: {}, val: {}, near: {}, far: {}".format(
+        len(all_rgb[0]),
+        len(all_rgb[1]),
+        len(all_rgb[2]),
+        scene_depth_min,
+        scene_depth_max
+    ))
 
     # convert train list to tensor
     if no_concat_train_set is False:
         all_rgb[0] = torch.concat(all_rgb[0], 0)
         all_rays_o[0] = torch.concat(all_rays_o[0], 0)
         all_rays_d[0] = torch.concat(all_rays_d[0], 0)
+        all_radii[0] = torch.concat(all_radii[0], 0)
         all_view_d[0] = torch.concat(all_view_d[0], 0)
         all_near[0] = torch.concat(all_near[0], 0)
         all_far[0] = torch.concat(all_far[0], 0)
@@ -386,6 +405,7 @@ def load_nerflab_dataset(
             split=key,
             rays_rgb=all_rgb[key],
             rays_o=all_rays_o[key], rays_d=all_rays_d[key],
+            radii=all_radii[key],
             near=all_near[key], far=all_far[key],
             view_d=all_view_d[key],
             image_filename=all_image_filename[key],
@@ -410,6 +430,7 @@ class NeRFLabDataset(Dataset):
             rays_rgb,
             rays_o,
             rays_d,
+            radii,
             near,
             far,
             view_d,
@@ -423,6 +444,7 @@ class NeRFLabDataset(Dataset):
         :param rays_rgb: list key by image index or tensor key by pixel
         :param rays_o:
         :param rays_d:
+        :param radii:
         :param near:
         :param far:
         :param view_d:
@@ -437,6 +459,7 @@ class NeRFLabDataset(Dataset):
         self.rays_rgb = rays_rgb
         self.rays_o = rays_o
         self.rays_d = rays_d
+        self.radii = radii
         self.near = near
         self.far = far
         self.view_d = view_d
@@ -459,6 +482,12 @@ class NeRFLabDataset(Dataset):
             self.far[idx],
             self.view_d[idx],
         ]
+
+        # append radii
+        if self.radii is not None:
+            rays.append(self.radii[idx])
+        else:
+            rays.append(None)
 
         if self.is_list is False:
             return rays
