@@ -19,7 +19,6 @@ export LD_LIBRARY_PATH="/usr/local/cuda-${CUDA_VERSION}/lib64:/usr/lib/wsl/lib/:
 export LIBRARY_PATH="${LD_LIBRARY_PATH}:${LIBRARY_PATH}"
 
 pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
-popd
 ```
 - Dataset preparation
   - [NeRF llff & synthetic](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
